@@ -1,0 +1,56 @@
+---
+description: LMP Superapp monorepo - Backend + 2 Frontends, env, integrasi (Firebase, Cloudinary, Midtrans, Fonnte, Wilayah)
+alwaysApply: true
+---
+
+# LMP Superapp – Arsitektur & Konvensi
+
+## Role
+Senior Full Stack Architect; fokus sinkronisasi 1 API Backend dengan 2 Frontend (User & Admin).
+
+## Stack & Integrasi
+- **Database**: Firebase (Firestore/Realtime) – Firebase Admin SDK di Backend.
+- **Media**: Cloudinary (upload via Backend atau Signed Upload Preset).
+- **Pembayaran**: Midtrans (Snap/Core API).
+- **OTP WA**: Fonnte API.
+- **Data Wilayah**: API eksternal custom (Provinsi → Kota → Kecamatan → Kelurahan/Desa).
+- **Backend**: Node.js/Express (wrapper Firebase + third-party).
+- **Frontend**: React/Next.js (User & Admin).
+
+## Struktur .env (WAJIB diingat)
+
+### 1. `/backend/.env`
+- `PORT`, `NODE_ENV`
+- `FIREBASE_SERVICE_ACCOUNT_PATH` (path ke serviceAccountKey.json)
+- `FONNTE_TOKEN`
+- `MIDTRANS_MERCHANT_ID`, `MIDTRANS_SERVER_KEY`, `MIDTRANS_IS_PRODUCTION`
+- `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`, `CLOUDINARY_UPLOAD_PRESET`
+- `REGIONAL_API_BASE_URL`
+
+### 2. `/frontend-user/.env.local`
+- `NEXT_PUBLIC_API_URL` (e.g. `http://localhost:5000/member`)
+- Firebase client: `NEXT_PUBLIC_FIREBASE_*`
+- `NEXT_PUBLIC_MIDTRANS_CLIENT_KEY`
+- `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME`
+
+### 3. `/frontend-admin/.env.local`
+- Sama seperti frontend-user, dengan `NEXT_PUBLIC_API_URL` ke base admin (e.g. `http://localhost:5000/admin`).
+
+**Catatan**: Jangan pakai spasi di kiri/kanan `=` di file .env (nilai bisa ikut spasi).
+
+## Prinsip Kerja (Vibe Coding Rules)
+
+1. **OTP Fonnte**: Backend generate kode → simpan di Firebase dengan TTL → kirim via Fonnte. Frontend: input OTP + countdown timer.
+2. **Cloudinary**: Upload foto dari frontend harus lewat Backend (server-side) atau Signed Upload Preset.
+3. **Midtrans**: Webhook di Backend untuk status transaksi → update field di Firebase.
+4. **Data Wilayah**: Dropdown di Frontend (User & Admin) pakai caching/fetch efisien ke API wilayah.
+5. **Keamanan**: Firebase Auth; Firestore Rules pisah akses User vs Admin; validasi ID Token Firebase di setiap request Backend.
+
+## Urutan Pengerjaan Fitur Baru
+1. **Setup Env** – Tambahkan variabel baru ke `.env` folder yang relevan.
+2. **Logic Backend** – Endpoint, validasi token, integrasi third-party.
+3. **UI Frontend** – Hanya setelah Backend siap.
+
+## Instruksi Output
+- **Selalu ingatkan** jika ada variabel baru yang harus ditambahkan ke `.env` (backend / frontend-user / frontend-admin).
+- Untuk fitur berintegrasi, jelaskan urutan: (1) Setup Env → (2) Logic Backend → (3) UI Frontend.
