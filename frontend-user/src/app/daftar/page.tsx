@@ -8,6 +8,7 @@ import { authApi, normalizePhoneIndonesia } from '@/lib/api';
 import { getFirebaseAuth } from '@/lib/firebase';
 import { signInWithCustomToken } from 'firebase/auth';
 import Toast from '@/components/Toast';
+import { useUserProfile } from '@/components/dashboard/UserProfileProvider';
 
 export default function DaftarPage() {
   const router = useRouter();
@@ -21,16 +22,17 @@ export default function DaftarPage() {
   const [countdown, setCountdown] = useState(0);
   const [devOtp, setDevOtp] = useState<string | null>(null);
   const [toast, setToast] = useState(false);
+  const { profile, loading: profileLoading } = useUserProfile();
 
   useEffect(() => {
-    const auth = getFirebaseAuth();
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      if (user) {
+    if (!profileLoading && profile) {
+      if (profile.hasPassword) {
         router.replace('/dashboard');
+      } else {
+        setStep('password');
       }
-    });
-    return () => unsubscribe();
-  }, [router]);
+    }
+  }, [profile, profileLoading, router]);
 
   const startCountdown = () => {
     setCountdown(60);
@@ -138,6 +140,14 @@ export default function DaftarPage() {
       setLoading(false);
     }
   };
+
+  if (profileLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-white">
+        <Loader2 className="h-10 w-10 animate-spin text-red-600" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-white px-4">

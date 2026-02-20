@@ -7,6 +7,7 @@ import { Phone, KeyRound, Loader2, ArrowRight } from 'lucide-react';
 import { authApi, normalizePhoneIndonesia } from '@/lib/api';
 import { getFirebaseAuth } from '@/lib/firebase';
 import { signInWithCustomToken, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { useUserProfile } from '@/components/dashboard/UserProfileProvider';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -16,15 +17,17 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [googleLoading, setGoogleLoading] = useState(false);
 
+  const { profile, loading: profileLoading } = useUserProfile();
+
   useEffect(() => {
-    const auth = getFirebaseAuth();
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      if (user) {
+    if (!profileLoading && profile) {
+      if (profile.hasPassword) {
         router.replace('/dashboard');
+      } else {
+        router.replace('/daftar');
       }
-    });
-    return () => unsubscribe();
-  }, [router]);
+    }
+  }, [profile, profileLoading, router]);
 
   const handleGoogleLogin = async () => {
     setError('');
@@ -73,6 +76,14 @@ export default function LoginPage() {
       setLoading(false);
     }
   };
+
+  if (profileLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-white">
+        <Loader2 className="h-10 w-10 animate-spin text-red-600" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-white px-4">

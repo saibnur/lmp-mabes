@@ -13,7 +13,8 @@ import {
   AlertCircle,
   FileText,
   UploadCloud,
-  ShieldCheck
+  ShieldCheck,
+  LogOut
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getFirebaseAuth } from '@/lib/firebase';
@@ -537,6 +538,22 @@ export default function EditProfilPage() {
           </div>
         </div>
       </motion.div>
+
+      {/* Logout Button for Mobile */}
+      <div className="mt-12 lg:hidden">
+        <button
+          onClick={async () => {
+            const { getFirebaseAuth } = await import('@/lib/firebase');
+            const { signOut } = await import('firebase/auth');
+            const auth = getFirebaseAuth();
+            await signOut(auth);
+            window.location.href = '/login';
+          }}
+          className="w-full flex items-center justify-center gap-3 rounded-2xl bg-slate-900 px-6 py-4 font-black text-white hover:bg-red-600 transition shadow-lg"
+        >
+          <LogOut className="h-5 w-5" /> KELUAR APLIKASI
+        </button>
+      </div>
 
       <Toast
         message={toast.message}

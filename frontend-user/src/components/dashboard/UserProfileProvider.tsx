@@ -23,6 +23,7 @@ export interface UserProfile {
   nik?: string;
   no_kta?: string;
   ktpURL?: string;
+  hasPassword?: boolean;
   organization?: {
     province_id: string;
     province_name: string;
@@ -88,6 +89,7 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
               nik: d.nik,
               no_kta: d.no_kta,
               ktpURL: d.ktpURL,
+              hasPassword: d.hasPassword ?? false,
               organization: d.organization,
             });
           } else {
@@ -97,6 +99,7 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
               role: 'member',
               status: 'active',
               membershipStatus: 'pending',
+              hasPassword: false,
             });
           }
           setLoading(false);

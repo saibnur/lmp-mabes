@@ -49,14 +49,14 @@ const item = {
 
 export default function Stats() {
   return (
-    <section className="relative z-10 -mt-24 px-4 sm:px-6 lg:px-8">
+    <section className="relative z-10 -mt-20 px-4 md:px-8">
       <div className="mx-auto max-w-7xl">
         <motion.div
           variants={container}
           initial="hidden"
           whileInView="show"
           viewport={{ once: true, margin: '-80px' }}
-          className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4"
+          className="grid grid-cols-2 gap-4 md:gap-6 lg:grid-cols-4"
         >
           {stats.map((stat) => (
             <motion.div

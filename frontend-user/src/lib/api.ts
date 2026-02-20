@@ -1,13 +1,6 @@
-import axios from 'axios';
+import { apiClient as api } from './api-client';
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/member';
-const baseUrl = apiUrl.replace(/\/member$|\/admin$/, '') || 'http://localhost:5000';
-
-export const api = axios.create({
-  baseURL: baseUrl,
-  headers: { 'Content-Type': 'application/json' },
-  withCredentials: true,
-});
+export { api };
 
 /** Normalisasi nomor Indonesia ke 62xxxxxxxxxx (untuk request ke backend) */
 export function normalizePhoneIndonesia(phone: string): string {

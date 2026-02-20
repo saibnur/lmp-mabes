@@ -7,10 +7,10 @@ import { getFirebaseAuth } from '@/lib/firebase';
 import { User } from 'firebase/auth';
 
 const navLinks = [
-  { label: 'Beranda', href: '#beranda' },
-  { label: 'Tentang Kami', href: '#tentang' },
-  { label: 'Program', href: '#program' },
-  { label: 'Berita', href: '#berita' },
+  { label: 'Beranda', href: '/' },
+  { label: 'Tentang Kami', href: '/tentang-kami' },
+  { label: 'Organisasi', href: '/organisasi' },
+  { label: 'Berita', href: '/berita' },
   { label: 'Galeri', href: '#galeri' },
 ];
 
@@ -29,18 +29,24 @@ export default function Navbar() {
   }, []);
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-white/80 backdrop-blur-xl supports-[backdrop-filter]:bg-white/70">
-      <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-        <Link href="/" className="text-xl font-bold tracking-tight text-red-600">
-          LMP PUSAT
+    <header className="fixed top-0 z-[60] w-full border-b border-white/10 bg-white/80 backdrop-blur-xl supports-[backdrop-filter]:bg-white/70">
+      <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 md:px-8">
+        <Link href="/" className="group flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-600 text-white shadow-lg transition-transform group-hover:rotate-6">
+            <span className="text-xs font-black">LMP</span>
+          </div>
+          <span className="text-lg font-black tracking-tighter uppercase italic text-slate-900 sm:text-xl">
+            Laskar <span className="text-red-600">Merah Putih</span>
+          </span>
         </Link>
 
-        <ul className="hidden items-center gap-8 md:flex">
+        {/* Desktop Links (lg and above) */}
+        <ul className="hidden items-center gap-8 lg:flex">
           {navLinks.map((link) => (
             <li key={link.href}>
               <Link
                 href={link.href}
-                className="text-sm font-medium text-slate-700 transition hover:text-red-600"
+                className="text-sm font-bold tracking-tight text-slate-600 transition hover:text-red-600"
               >
                 {link.label}
               </Link>
@@ -48,93 +54,35 @@ export default function Navbar() {
           ))}
         </ul>
 
-        <div className="hidden items-center gap-3 md:flex">
+        <div className="flex items-center gap-3">
           {!loading && (
             user ? (
               <Link
                 href="/dashboard"
-                className="flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+                className="flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-xs font-bold text-white shadow-lg transition hover:bg-slate-800 hover:shadow-xl active:scale-95 sm:text-sm"
               >
                 <LayoutDashboard className="h-4 w-4" />
-                Dashboard
+                <span className="hidden sm:inline">Dashboard</span>
               </Link>
             ) : (
-              <>
+              <div className="flex items-center gap-2">
                 <Link
                   href="/login"
-                  className="rounded-xl border-2 border-red-600 px-4 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-50"
+                  className="rounded-xl border-2 border-red-600 px-4 py-2 text-xs font-bold text-red-600 transition hover:bg-red-50 hover:shadow-md active:scale-95 sm:text-sm"
                 >
                   Masuk
                 </Link>
                 <Link
                   href="/daftar"
-                  className="rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700"
+                  className="hidden sm:inline-flex rounded-xl bg-red-600 px-4 py-2.5 text-sm font-bold text-white shadow-lg transition hover:bg-red-700 hover:shadow-xl active:scale-95"
                 >
-                  Daftar Anggota
+                  Daftar
                 </Link>
-              </>
+              </div>
             )
           )}
         </div>
-
-        <button
-          type="button"
-          onClick={() => setOpen((o) => !o)}
-          className="rounded-lg p-2 text-slate-700 md:hidden"
-          aria-label="Toggle menu"
-        >
-          {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-        </button>
       </nav>
-
-      {open && (
-        <div className="border-t border-slate-200 bg-white/95 px-4 py-4 backdrop-blur-xl md:hidden">
-          <ul className="flex flex-col gap-2">
-            {navLinks.map((link) => (
-              <li key={link.href}>
-                <Link
-                  href={link.href}
-                  onClick={() => setOpen(false)}
-                  className="block rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-red-50 hover:text-red-600"
-                >
-                  {link.label}
-                </Link>
-              </li>
-            ))}
-            <li className="mt-2 flex flex-col gap-2 border-t border-slate-200 pt-3">
-              {!loading && (
-                user ? (
-                  <Link
-                    href="/dashboard"
-                    onClick={() => setOpen(false)}
-                    className="flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white"
-                  >
-                    <LayoutDashboard className="h-4 w-4" />
-                    Dashboard
-                  </Link>
-                ) : (
-                  <>
-                    <Link
-                      href="/login"
-                      onClick={() => setOpen(false)}
-                      className="rounded-xl border-2 border-red-600 px-4 py-2.5 text-center text-sm font-semibold text-red-600"
-                    >
-                      Masuk
-                    </Link>
-                    <Link
-                      href="/daftar"
-                      onClick={() => setOpen(false)}
-                      className="rounded-xl bg-red-600 px-4 py-2.5 text-center text-sm font-semibold text-white"
-                    >
-                      Daftar Anggota
-                    </Link>
-                  </>
-                )
-              )}
-            </li>
-          </ul>
-        </div>
-      )}
     </header>
   );
 }

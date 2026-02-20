@@ -3,15 +3,20 @@
   "version": "1.0.0",
   "private": true,
   "description": "Monorepo: Backend + Frontend User + Frontend Admin",
+  "workspaces": [
+    "backend",
+    "frontend-user",
+    "frontend-admin"
+  ],
   "scripts": {
     "dev": "concurrently -n backend,user,admin -c blue,magenta,green \"npm run dev:backend\" \"npm run dev:user\" \"npm run dev:admin\"",
-    "dev:backend": "cd backend && npm run dev",
-    "dev:user": "cd frontend-user && npm run dev",
-    "dev:admin": "cd frontend-admin && npm run dev",
-    "build": "npm run build:user && npm run build:admin",
-    "build:backend": "cd backend && node server.js",
-    "build:user": "cd frontend-user && npm run build",
-    "build:admin": "cd frontend-admin && npm run build"
+    "dev:backend": "npm run dev --workspace=backend",
+    "dev:user": "npm run dev --workspace=frontend-user",
+    "dev:admin": "npm run dev --workspace=frontend-admin",
+    "build": "echo 'Build started for monorepo root' && npm run build --workspace=frontend-user && npm run build --workspace=frontend-admin",
+    "build:backend": "npm run build --workspace=backend",
+    "build:user": "npm run build --workspace=frontend-user",
+    "build:admin": "npm run build --workspace=frontend-admin"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

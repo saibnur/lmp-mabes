@@ -60,8 +60,8 @@ export default function StatusKeanggotaanPage() {
                             return;
                         }
 
-                        // Fire confetti if active
-                        if (data.membershipStatus === 'active' && !hasFiredConfetti.current) {
+                        // Fire confetti if active and not seen yet
+                        if (data.membershipStatus === 'active' && !data.hasSeenWelcomeAnim && !hasFiredConfetti.current) {
                             confetti({
                                 particleCount: 150,
                                 spread: 70,
@@ -69,6 +69,13 @@ export default function StatusKeanggotaanPage() {
                                 colors: ['#DC2626', '#FFFFFF', '#000000']
                             });
                             hasFiredConfetti.current = true;
+                            // Mark as seen in Firestore
+                            await updateDoc(userRef, { hasSeenWelcomeAnim: true });
+                        }
+
+                        // Mark membership as opened to clear notification dot
+                        if (!data.hasOpenedMembership) {
+                            await updateDoc(userRef, { hasOpenedMembership: true });
                         }
                     }
                     setPageLoading(false);
@@ -186,6 +193,9 @@ export default function StatusKeanggotaanPage() {
                                         <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase italic">
                                             {userDoc?.membershipStatus === 'active' ? 'Kader Terverifikasi' : 'Menunggu Pelunasan'}
                                         </h2>
+                                        {userDoc?.no_kta && (
+                                            <p className="text-sm font-bold text-slate-400 mt-1">NO. KTA: {userDoc.no_kta}</p>
+                                        )}
                                     </div>
 
                                     {userDoc?.membershipStatus === 'active' ? (

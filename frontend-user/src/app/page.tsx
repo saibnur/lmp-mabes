@@ -1,4 +1,5 @@
 import Navbar from '@/components/landing/Navbar';
+import LandingBottomNav from '@/components/landing/LandingBottomNav';
 import Hero from '@/components/landing/Hero';
 import Stats from '@/components/landing/Stats';
 import About from '@/components/landing/About';
@@ -22,6 +23,7 @@ export default function Home() {
         <CTASection />
         <Footer />
       </main>
+      <LandingBottomNav />
     </div>
   );
 }

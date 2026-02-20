@@ -5,19 +5,19 @@ import { Target, Eye, Award } from 'lucide-react';
 
 export default function About() {
   return (
-    <section id="tentang" className="bg-white py-20 sm:py-24">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="grid gap-16 lg:grid-cols-2 lg:items-center">
+    <section id="tentang" className="bg-white py-24 sm:py-32">
+      <div className="mx-auto max-w-7xl px-4 md:px-8">
+        <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
           >
-            <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+            <h2 className="text-3xl font-black tracking-tighter text-slate-900 uppercase italic sm:text-4xl md:text-5xl">
               Tentang Kami
             </h2>
             <p className="mt-6 text-lg leading-relaxed text-slate-600">
-              LMP (Lembaga Masyarakat Pancasila) adalah organisasi
+              LMP (Laskar Merah Putih) adalah organisasi
               kemasyarakatan yang berkomitmen menjaga nilai-nilai Pancasila dan
               persatuan Indonesia. Melalui berbagai program pemberdayaan,
               bakti sosial, dan layanan kepada anggota, kami hadir untuk

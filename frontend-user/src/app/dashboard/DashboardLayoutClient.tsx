@@ -1,9 +1,10 @@
 'use client';
 
-import { usePathname } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
+import { useEffect } from 'react';
 import DashboardSidebar from '@/components/dashboard/DashboardSidebar';
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
-import { UserProfileProvider, useUserProfile } from '@/components/dashboard/UserProfileProvider';
+import { useUserProfile } from '@/components/dashboard/UserProfileProvider';
 
 const PAGE_TITLES: Record<string, string> = {
   '/dashboard': 'Member',
@@ -13,8 +14,16 @@ const PAGE_TITLES: Record<string, string> = {
 
 function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { profile, loading } = useUserProfile();
+
+  useEffect(() => {
+    if (!loading && profile && profile.hasPassword === false) {
+      router.replace('/daftar');
+    }
+  }, [profile, loading, router]);
+
   const title = PAGE_TITLES[pathname] ?? 'Member';
-  const { profile } = useUserProfile();
   const headerProfile = profile
     ? {
       displayName: profile.displayName,
@@ -26,9 +35,9 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
   return (
     <>
       <DashboardSidebar />
-      <div className="flex flex-1 flex-col pt-16 md:pt-0 md:ml-64 relative min-h-screen">
+      <div className="flex flex-1 flex-col lg:pt-0 lg:ml-64 relative min-h-screen">
         <DashboardHeader title={title} profile={headerProfile} />
-        <main className="flex-1 px-4 md:px-8 pb-32 md:pb-12">{children}</main>
+        <main className="flex-1 px-4 lg:px-8 pb-32 lg:pb-12">{children}</main>
       </div>
     </>
   );
@@ -36,10 +45,8 @@ function DashboardLayoutInner({ children }: { children: React.ReactNode }) {
 
 export default function DashboardLayoutClient({ children }: { children: React.ReactNode }) {
   return (
-    <UserProfileProvider>
-      <div className="flex min-h-screen bg-slate-50">
-        <DashboardLayoutInner>{children}</DashboardLayoutInner>
-      </div>
-    </UserProfileProvider>
+    <div className="flex min-h-screen bg-slate-50">
+      <DashboardLayoutInner>{children}</DashboardLayoutInner>
+    </div>
   );
 }

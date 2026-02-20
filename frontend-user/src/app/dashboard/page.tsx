@@ -37,7 +37,7 @@ export default function DashboardMemberPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* Status Card */}
           <div className="md:col-span-2 rounded-[2rem] border border-slate-100 bg-white p-8 shadow-xl shadow-slate-200/50 relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-32 h-32 bg-red-600/5 rounded-full -mr-16 -mt-16 group-hover:scale-110 transition-transform duration-500" />

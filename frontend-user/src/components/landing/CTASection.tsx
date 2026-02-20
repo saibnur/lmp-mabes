@@ -21,14 +21,14 @@ export default function CTASection() {
   }, []);
 
   return (
-    <section className="bg-slate-900 py-20 sm:py-24">
-      <div className="mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8">
+    <section className="bg-slate-900 py-24 sm:py-32">
+      <div className="mx-auto max-w-7xl px-4 text-center md:px-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
         >
-          <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl">
+          <h2 className="text-3xl font-black tracking-tighter text-white uppercase italic sm:text-4xl md:text-5xl lg:text-6xl">
             Siap Berkontribusi untuk Bangsa?
           </h2>
           <p className="mx-auto mt-6 max-w-2xl text-lg text-slate-300">

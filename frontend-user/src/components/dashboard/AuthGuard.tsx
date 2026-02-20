@@ -1,30 +1,25 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getFirebaseAuth } from '@/lib/firebase';
-import { onAuthStateChanged } from 'firebase/auth';
 import { Loader2 } from 'lucide-react';
+import { useUserProfile } from './UserProfileProvider';
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const [checked, setChecked] = useState(false);
-  const [authenticated, setAuthenticated] = useState(false);
+  const { profile, loading, uid } = useUserProfile();
 
   useEffect(() => {
-    const auth = getFirebaseAuth();
-    const unsub = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        setAuthenticated(true);
-      } else {
+    if (!loading) {
+      if (!uid) {
         router.replace('/login');
+      } else if (profile && profile.hasPassword === false) {
+        router.replace('/daftar');
       }
-      setChecked(true);
-    });
-    return () => unsub();
-  }, [router]);
+    }
+  }, [profile, loading, uid, router]);
 
-  if (!checked) {
+  if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-white">
         <Loader2 className="h-10 w-10 animate-spin text-red-600" />
@@ -32,7 +27,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!authenticated) {
+  if (!uid || (profile && profile.hasPassword === false)) {
     return null;
   }
 
