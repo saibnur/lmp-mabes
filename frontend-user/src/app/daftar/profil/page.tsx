@@ -975,6 +975,87 @@ export default function DaftarProfilPage() {
                 </div>
             </div>
 
+            {/* ── KTP Cropper Modal ── */}
+            <AnimatePresence>
+                {showCropper && cropImageSrc && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/90 p-4 backdrop-blur-sm">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="relative flex h-full max-h-[600px] w-full max-w-2xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl"
+                        >
+                            <div className="flex items-center justify-between border-b px-6 py-4">
+                                <h3 className="text-sm font-black uppercase tracking-widest text-slate-800">Atur Foto KTP</h3>
+                                <button onClick={() => setShowCropper(false)} className="rounded-full p-2 hover:bg-slate-100">
+                                    <X className="h-5 w-5 text-slate-500" />
+                                </button>
+                            </div>
+
+                            <div className="relative flex-1 bg-slate-100">
+                                <Cropper
+                                    image={cropImageSrc}
+                                    crop={crop}
+                                    zoom={zoom}
+                                    rotation={rotation}
+                                    aspect={4 / 2.5} // Standard ID Card Ratio
+                                    onCropChange={setCrop}
+                                    onRotationChange={setRotation}
+                                    onZoomChange={setZoom}
+                                    onCropComplete={handleCropComplete}
+                                />
+                            </div>
+
+                            <div className="border-t bg-white px-6 py-6">
+                                <div className="mb-6 space-y-4">
+                                    <div className="flex items-center gap-4">
+                                        <RotateCw className="h-4 w-4 text-slate-400" />
+                                        <input
+                                            type="range"
+                                            value={rotation}
+                                            min={0}
+                                            max={360}
+                                            step={1}
+                                            onChange={(e) => setRotation(Number(e.target.value))}
+                                            className="h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-slate-100 accent-red-600"
+                                        />
+                                        <span className="min-w-[40px] text-right text-xs font-bold text-slate-600">{rotation}°</span>
+                                    </div>
+                                    <div className="flex items-center gap-4">
+                                        <Camera className="h-4 w-4 text-slate-400" />
+                                        <input
+                                            type="range"
+                                            value={zoom}
+                                            min={1}
+                                            max={3}
+                                            step={0.1}
+                                            onChange={(e) => setZoom(Number(e.target.value))}
+                                            className="h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-slate-100 accent-red-600"
+                                        />
+                                        <span className="min-w-[40px] text-right text-xs font-bold text-slate-600">{zoom.toFixed(1)}x</span>
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={() => setShowCropper(false)}
+                                        className="flex-1 rounded-2xl border-2 border-slate-200 py-4 text-sm font-black uppercase tracking-widest text-slate-600 transition hover:bg-slate-50"
+                                    >
+                                        Batal
+                                    </button>
+                                    <button
+                                        onClick={processCrop}
+                                        className="flex-1 rounded-2xl bg-red-600 py-4 text-sm font-black uppercase tracking-widest text-white shadow-lg transition hover:bg-slate-900 active:scale-95"
+                                    >
+                                        Simpan Foto
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
             <Toast message={toast.message} visible={toast.show} onClose={() => setToast(t => ({ ...t, show: false }))} />
         </div>
     );
