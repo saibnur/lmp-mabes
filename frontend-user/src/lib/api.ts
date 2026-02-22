@@ -1,95 +1,10 @@
-import { apiClient as api } from './api-client';
-
-export { api };
-
-/** Normalisasi nomor Indonesia ke 62xxxxxxxxxx (untuk request ke backend) */
-export function normalizePhoneIndonesia(phone: string): string {
-  let p = String(phone).replace(/\D/g, '');
-  if (p.startsWith('0')) p = '62' + p.slice(1);
-  if (!p.startsWith('62')) p = '62' + p;
-  return p;
-}
-
-export const authApi = {
-  sendOtp: (phone: string) =>
-    api.post<{ success: boolean; message: string; devOtp?: string }>('/api/auth/send-otp', {
-      phone: normalizePhoneIndonesia(phone),
-    }),
-  verifyOtp: (
-    phone: string,
-    otp: string,
-    forAdmin = false,
-    register = true
-  ) =>
-    api.post<{
-      success: boolean;
-      message: string;
-      customToken?: string;
-      uid?: string;
-      needsPassword?: boolean;
-    }>('/api/auth/verify-otp', {
-      phone: normalizePhoneIndonesia(phone),
-      otp,
-      forAdmin,
-      register,
-    }),
-  setPassword: (idToken: string, password: string) =>
-    api.post<{ success: boolean; message: string }>('/api/auth/set-password', { password }, {
-      headers: { Authorization: `Bearer ${idToken}` },
-    }),
-  loginWithPassword: (phone: string, password: string) =>
-    api.post<{
-      success: boolean;
-      message: string;
-      customToken?: string;
-      uid?: string;
-    }>('/api/auth/login-with-password', {
-      phone: normalizePhoneIndonesia(phone),
-      password,
-    }),
-  ensureUser: (idToken: string) =>
-    api.post<{ success: boolean }>('/api/auth/ensure-user', {}, {
-      headers: { Authorization: `Bearer ${idToken}` },
-    }),
-};
-
-export const paymentApi = {
-  createTransaction: (idToken: string) =>
-    api.post<{ success: boolean; token: string; redirect_url: string }>('/api/payment/create-transaction', {}, {
-      headers: { Authorization: `Bearer ${idToken}` },
-    }),
-};
-
-export const memberApi = {
-  getRegions: (type: 'provinces' | 'regencies' | 'districts' | 'villages', parentId?: string) =>
-    api.get<{ success: boolean; data: { id: string; name: string }[] }>('/api/members/regions', {
-      params: { type, parent_id: parentId },
-    }),
-  updateProfile: (idToken: string, data: any) =>
-    api.post<{ success: boolean; message: string; data: any }>('/api/members/update-profile', data, {
-      headers: { Authorization: `Bearer ${idToken}` },
-    }),
-  checkNik: (idToken: string, nik: string) =>
-    api.post<{ success: boolean; exists: boolean }>('/api/members/check-nik', { nik }, {
-      headers: { Authorization: `Bearer ${idToken}` },
-    }),
-  getProfile: (idToken: string) =>
-    api.get<{ success: boolean; data: any }>('/api/members/profile', {
-      headers: { Authorization: `Bearer ${idToken}` },
-    }),
-};
-
-export const mediaApi = {
-  getSignUpload: (idToken: string, folder = 'members') =>
-    api.get<{
-      success: boolean;
-      signature: string;
-      timestamp: number;
-      cloud_name: string;
-      api_key: string;
-      upload_preset: string;
-    }>('/api/media/sign-upload', {
-      params: { folder },
-      headers: { Authorization: `Bearer ${idToken}` },
-    }),
-};
+// ──────────────────────────────────────────────────────────────────────────────
+// DEPRECATED — backwards-compat barrel.
+// New code should import from '@/lib/api/auth.api', '@/lib/api/member.api', etc.
+// ──────────────────────────────────────────────────────────────────────────────
+export { apiClient } from '@/lib/api/client';
+export { authApi } from '@/lib/api/auth.api';
+export { memberApi } from '@/lib/api/member.api';
+export { paymentApi } from '@/lib/api/payment.api';
+export { mediaApi } from '@/lib/api/media.api';
+export { normalizePhoneIndonesia } from '@/lib/utils';

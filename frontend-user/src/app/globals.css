@@ -1,25 +1,18 @@
 @import "tailwindcss";
 
+/* ──────────────────────────────────────────────────────────────
+   LMP Design Tokens — Merah Putih Hitam
+   ────────────────────────────────────────────────────────────── */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+  /* Brand Colors */
+  --lmp-red: #dc2626;
+  --lmp-red-dark: #b91c1c;
+  --lmp-red-light: #fef2f2;
+  --lmp-white: #ffffff;
+  --lmp-black: #0f172a;
+  --lmp-slate: #64748b;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-:root {
+  /* Semantic Colors (HSL for Shadcn compatibility) */
   --background: 0 0% 100%;
   --foreground: 222.2 84% 4.9%;
   --card: 0 0% 100%;
@@ -38,7 +31,7 @@
   --destructive-foreground: 210 40% 98%;
   --border: 214.3 31.8% 91.4%;
   --input: 214.3 31.8% 91.4%;
-  --ring: 222.2 84% 4.9%;
+  --ring: 0 72.2% 50.6%;
   --radius: 0.5rem;
   --chart-1: 12 76% 61%;
   --chart-2: 173 58% 39%;
@@ -47,8 +40,18 @@
   --chart-5: 27 87% 67%;
 }
 
+@theme inline {
+  --color-background: var(--lmp-white);
+  --color-foreground: var(--lmp-black);
+  --color-lmp-red: var(--lmp-red);
+  --color-lmp-red-dark: var(--lmp-red-dark);
+  --color-lmp-red-light: var(--lmp-red-light);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--lmp-white);
+  color: var(--lmp-black);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }

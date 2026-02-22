@@ -2,6 +2,10 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
+import { UserProfileProvider } from "@/store/UserProfileProvider";
+import Providers from "@/app/components/Providers";
+import MainLayoutClient from "@/components/layout/MainLayoutClient";
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -17,10 +21,6 @@ export const metadata: Metadata = {
   description:
     "Organisasi kemasyarakatan yang menjunjung tinggi nilai Pancasila dan persatuan Indonesia.",
 };
-
-import { UserProfileProvider } from "@/app/components/dashboard/UserProfileProvider";
-import Providers from "@/app/components/Providers";
-import MainLayoutClient from "@/app/components/layout/MainLayoutClient";
 
 export default function RootLayout({
   children,

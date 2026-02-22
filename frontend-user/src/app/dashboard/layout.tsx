@@ -1,4 +1,4 @@
-import AuthGuard from '@/app/components/dashboard/AuthGuard';
+import AuthGuard from '@/features/dashboard/components/AuthGuard';
 import DashboardLayoutClient from './DashboardLayoutClient';
 
 export default function DashboardLayout({

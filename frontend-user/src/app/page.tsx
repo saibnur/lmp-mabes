@@ -1,11 +1,11 @@
-import Hero from '@/app/components/landing/Hero';
-import Stats from '@/app/components/landing/Stats';
-import About from '@/app/components/landing/About';
-import Services from '@/app/components/landing/Services';
-import News from '@/app/components/landing/News';
-import Gallery from '@/app/components/landing/Gallery';
-import CTASection from '@/app/components/landing/CTASection';
-import Footer from '@/app/components/landing/Footer';
+import Hero from '@/features/landing/components/Hero';
+import Stats from '@/features/landing/components/Stats';
+import About from '@/features/landing/components/About';
+import Services from '@/features/landing/components/Services';
+import News from '@/features/landing/components/News';
+import Gallery from '@/features/landing/components/Gallery';
+import CTASection from '@/features/landing/components/CTASection';
+import Footer from '@/features/landing/components/Footer';
 
 export default function Home() {
   return (
