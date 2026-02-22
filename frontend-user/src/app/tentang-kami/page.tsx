@@ -1,7 +1,5 @@
 'use client';
 
-import Navbar from '@/components/landing/Navbar';
-import Footer from '@/components/landing/Footer';
 import { FileCheck, Calendar, Target, CheckCircle2 } from 'lucide-react';
 
 const milestones = [
@@ -19,12 +17,11 @@ const missions = [
 
 export default function TentangKamiPage() {
     return (
-        <div className="min-h-screen bg-white">
-            <Navbar />
+        <div className="bg-white">
 
             {/* Hero Section */}
             <section className="pt-32 pb-20 bg-slate-50">
-                <div className="container mx-auto px-4 text-center">
+                <div className="container mx-auto px-4 md:px-8 lg:px-12 text-center">
                     <h1 className="text-4xl md:text-5xl font-bold text-slate-900 mb-4">
                         Tentang Kami
                     </h1>
@@ -37,7 +34,7 @@ export default function TentangKamiPage() {
 
             {/* Sejarah Section */}
             <section className="py-20 bg-white">
-                <div className="container mx-auto px-4">
+                <div className="container mx-auto px-4 md:px-8 lg:px-12">
                     <div className="grid lg:grid-cols-2 gap-12 items-center">
                         <div>
                             <h2 className="text-3xl font-bold text-slate-900 mb-6">Sejarah & Filosofi</h2>
@@ -90,7 +87,7 @@ export default function TentangKamiPage() {
 
             {/* Visi Misi Section */}
             <section className="py-20 bg-slate-50">
-                <div className="container mx-auto px-4">
+                <div className="container mx-auto px-4 md:px-8 lg:px-12">
                     <div className="grid lg:grid-cols-2 gap-12">
                         {/* Visi */}
                         <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-100">
@@ -127,7 +124,7 @@ export default function TentangKamiPage() {
 
             {/* Legalitas Section */}
             <section className="py-20 bg-white">
-                <div className="container mx-auto px-4">
+                <div className="container mx-auto px-4 md:px-8 lg:px-12">
                     <div className="text-center mb-12">
                         <h2 className="text-3xl font-bold text-slate-900">Legalitas Organisasi</h2>
                         <p className="text-slate-600 text-lg max-w-2xl mx-auto mt-4">
@@ -160,8 +157,6 @@ export default function TentangKamiPage() {
                     </div>
                 </div>
             </section>
-
-            <Footer />
         </div>
     );
 }

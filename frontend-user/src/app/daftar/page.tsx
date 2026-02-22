@@ -3,12 +3,12 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Phone, KeyRound, Loader2, ArrowRight, Lock } from 'lucide-react';
+import { Phone, KeyRound, Loader2, ArrowRight, Lock, ArrowLeft } from 'lucide-react';
 import { authApi, normalizePhoneIndonesia } from '@/lib/api';
 import { getFirebaseAuth } from '@/lib/firebase';
 import { signInWithCustomToken } from 'firebase/auth';
-import Toast from '@/components/Toast';
-import { useUserProfile } from '@/components/dashboard/UserProfileProvider';
+import Toast from '@/app/components/Toast';
+import { useUserProfile } from '@/app/components/dashboard/UserProfileProvider';
 
 export default function DaftarPage() {
   const router = useRouter();
@@ -27,7 +27,12 @@ export default function DaftarPage() {
   useEffect(() => {
     if (!profileLoading && profile) {
       if (profile.hasPassword) {
-        router.replace('/dashboard');
+        // If profile is complete (has region), go to dashboard. Otherwise complete profile.
+        if (profile.organization?.village_id && profile.profileComplete) {
+          router.replace('/dashboard');
+        } else {
+          router.replace('/daftar/profil');
+        }
       } else {
         setStep('password');
       }
@@ -129,7 +134,7 @@ export default function DaftarPage() {
       }
       const idToken = await user.getIdToken();
       await authApi.setPassword(idToken, password);
-      router.push('/dashboard');
+      router.push('/daftar/profil');
       router.refresh();
     } catch (err: unknown) {
       const msg =
@@ -153,8 +158,29 @@ export default function DaftarPage() {
     <div className="flex min-h-screen items-center justify-center bg-white px-4">
       <div className="absolute inset-0 bg-[linear-gradient(to_bottom,_#fef2f2_0%,_transparent_50%,_#fef2f2_100%)] opacity-60" />
       <div className="relative w-full max-w-md">
+
+        {/* Tombol Back */}
+        <button
+          onClick={() => router.push('/')}
+          className="group flex items-center gap-2 text-sm font-bold tracking-wider text-slate-500 transition hover:text-slate-900 mb-6"
+        >
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 transition group-hover:bg-slate-200">
+            <ArrowLeft className="h-4 w-4" />
+          </div>
+          Kembali
+        </button>
+
         <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-xl">
           <div className="mb-8 text-center">
+            <div className="flex justify-center mb-4">
+              <div className="relative h-20 w-24 overflow-hidden rounded-xl bg-white p-1 shadow-md border border-slate-100">
+                <img
+                  src="/logo-lmp.svg"
+                  alt="LMP Logo"
+                  className="h-full w-full object-contain"
+                />
+              </div>
+            </div>
             <h1 className="text-2xl font-bold tracking-tight text-red-600">Daftar Anggota</h1>
             <p className="mt-2 text-sm text-slate-600">
               {step === 'phone' && 'Masukkan nomor WhatsApp untuk mendaftar'}

@@ -2,14 +2,15 @@
 
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { User, CreditCard, Settings } from 'lucide-react';
-import { useUserProfile } from '@/components/dashboard/UserProfileProvider';
+import { User, CreditCard, Settings, AlertTriangle, IdCard } from 'lucide-react';
+import { useUserProfile } from '@/app/components/dashboard/UserProfileProvider';
 
 export default function DashboardMemberPage() {
   const { profile, loading } = useUserProfile();
 
   const displayPhone = profile?.phoneNumber || profile?.phone;
   const displayName = profile?.displayName || 'Member';
+  const profileIncomplete = !profile?.organization?.village_id || !profile?.profileComplete;
 
   if (loading) {
     return (
@@ -36,6 +37,28 @@ export default function DashboardMemberPage() {
             <p className="text-lg font-black text-slate-900">{displayName}</p>
           </div>
         </div>
+
+        {/* Profile Incomplete Banner */}
+        {profileIncomplete && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex items-center gap-4 rounded-3xl border-2 border-red-200 bg-red-50 p-6"
+          >
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-red-600 text-white">
+              <AlertTriangle className="h-6 w-6" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-black text-red-700 uppercase tracking-tight">Profil Belum Lengkap</h3>
+              <p className="text-sm font-medium text-red-600/80">Lengkapi data diri & wilayah untuk mendapatkan nomor KTA dan mengaktifkan keanggotaan.</p>
+            </div>
+            <Link href="/daftar/profil">
+              <button className="shrink-0 rounded-2xl bg-red-600 px-5 py-3 font-black text-sm text-white transition hover:bg-red-700 active:scale-95">
+                Lengkapi
+              </button>
+            </Link>
+          </motion.div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* Status Card */}
@@ -87,7 +110,7 @@ export default function DashboardMemberPage() {
               {displayPhone && (
                 <div>
                   <p className="text-[10px] font-black uppercase text-red-600 tracking-widest mb-1">WhatsApp</p>
-                  <p className="font-black text-lg">+{displayPhone}</p>
+                  <p className="font-black text-lg">{displayPhone}</p>
                 </div>
               )}
               <div>
@@ -149,6 +172,27 @@ export default function DashboardMemberPage() {
             </Link>
           )}
         </div>
+
+        {/* KTA Digital Quick Card (active members) */}
+        {profile?.membershipStatus === 'active' && profile?.no_kta && (
+          <Link href="/dashboard/status-keanggotaan">
+            <motion.div
+              whileHover={{ y: -4, scale: 1.01 }}
+              className="flex items-center gap-5 rounded-3xl border-2 border-slate-900 bg-slate-900 p-6 text-white shadow-xl shadow-slate-900/20 transition duration-300"
+            >
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-red-600 text-white shadow-lg shadow-red-500/30">
+                <IdCard className="h-7 w-7" />
+              </div>
+              <div className="flex-1">
+                <p className="text-[10px] font-black uppercase tracking-widest text-white/50 mb-0.5">KTA Digital Anda</p>
+                <h3 className="text-xl font-black tracking-tighter">No. {profile.no_kta}</h3>
+              </div>
+              <div className="text-white/30">
+                <CreditCard className="h-6 w-6" />
+              </div>
+            </motion.div>
+          </Link>
+        )}
       </motion.div>
     </div>
   );

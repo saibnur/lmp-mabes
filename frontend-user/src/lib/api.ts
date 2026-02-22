@@ -69,6 +69,14 @@ export const memberApi = {
     api.post<{ success: boolean; message: string; data: any }>('/api/members/update-profile', data, {
       headers: { Authorization: `Bearer ${idToken}` },
     }),
+  checkNik: (idToken: string, nik: string) =>
+    api.post<{ success: boolean; exists: boolean }>('/api/members/check-nik', { nik }, {
+      headers: { Authorization: `Bearer ${idToken}` },
+    }),
+  getProfile: (idToken: string) =>
+    api.get<{ success: boolean; data: any }>('/api/members/profile', {
+      headers: { Authorization: `Bearer ${idToken}` },
+    }),
 };
 
 export const mediaApi = {

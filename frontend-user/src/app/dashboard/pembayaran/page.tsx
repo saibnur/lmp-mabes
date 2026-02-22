@@ -15,11 +15,13 @@ import {
   TrendingUp,
   LayoutGrid,
   Loader2,
+  Calendar,
+  CreditCard,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { paymentApi } from '@/lib/api';
 import { getFirebaseAuth, getFirestoreDb } from '@/lib/firebase';
-import Toast from '@/components/Toast';
+import Toast from '@/app/components/Toast';
 import { doc, onSnapshot } from 'firebase/firestore';
 
 declare global {
@@ -60,15 +62,7 @@ export default function PembayaranPage() {
           if (docSnap.exists()) {
             const data = docSnap.data();
             setMembershipStatus(data.membershipStatus || 'pending');
-            // Critical fix: use membershipStatus
-            // Redirect to status-keanggotaan if activated
-            if (data.membershipStatus === 'active') {
-              setToast({ show: true, message: 'Pembayaran terverifikasi! Mengalihkan...', type: 'success' });
-              setTimeout(() => {
-                router.replace('/dashboard/status-keanggotaan');
-              }, 2000);
-              return;
-            }
+            // Remove auto-redirect logic for active user so they can view the history table
           }
           setPageLoading(false);
         }, (error) => {
@@ -176,126 +170,195 @@ export default function PembayaranPage() {
       <div className="absolute top-0 left-0 w-full h-96 bg-gradient-to-b from-red-50/50 to-transparent -z-10" />
 
       <div className="max-w-6xl mx-auto px-4 pt-16">
-        <div className="text-center mb-16 border-b-4 border-slate-900 pb-10 inline-block w-full">
-          <motion.h1
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="text-4xl md:text-6xl font-black text-slate-900 tracking-tighter uppercase italic"
-          >
-            {isRenewal ? (
-              <>Lanjutkan Keanggotaan <span className="text-red-600">Anda</span></>
-            ) : (
-              <>Kenapa Harus Jadi <span className="text-red-600">Member?</span></>
-            )}
-          </motion.h1>
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2 }}
-            className="mt-6 text-xl font-bold text-slate-500 max-w-2xl mx-auto leading-relaxed"
-          >
-            {isRenewal
-              ? "Masa aktif Anda telah habis. Yuk, perpanjang kontribusi Anda untuk LMP."
-              : "Dapatkan akses penuh ke seluruh fasilitas organisasi dan jadilah bagian dari perjuangan bersama Nasionalis."
-            }
-          </motion.p>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 items-start mt-12">
-          <motion.div className="lg:col-span-2 space-y-6">
-            {/* Desktop Headers */}
-            <div className="hidden md:grid grid-cols-4 px-8 pb-6 border-b-2 border-slate-900 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
-              <div className="col-span-2">Fasilitas Keanggotaan</div>
-              <div className="text-center">Non-Member</div>
-              <div className="text-center text-red-600">Member Resmi</div>
+        {membershipStatus === 'active' ? (
+          <>
+            <div className="text-center mb-16 border-b-4 border-slate-900 pb-10 inline-block w-full">
+              <motion.h1
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="text-4xl md:text-6xl font-black text-slate-900 tracking-tighter uppercase italic"
+              >
+                Riwayat <span className="text-red-600">Pembayaran</span>
+              </motion.h1>
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.2 }}
+                className="mt-6 text-xl font-bold text-slate-500 max-w-2xl mx-auto leading-relaxed"
+              >
+                Daftar transaksi dan kontribusi iuran keanggotaan Anda.
+              </motion.p>
             </div>
 
-            {features.map((f, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.1 }}
-                className="grid grid-cols-1 md:grid-cols-4 items-center p-6 md:p-8 bg-white border-2 border-slate-100 rounded-[2.5rem] hover:shadow-2xl hover:shadow-slate-200/50 transition-all duration-300 group"
+            <div className="bg-white border-2 border-slate-100 rounded-[2.5rem] p-8 md:p-10 shadow-xl shadow-slate-200/50">
+              {/* Gunakan data dummy untuk render visual, sesuaikan dengan backend di masa depan */}
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b-2 border-slate-900 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
+                      <th className="pb-4 px-4">Tanggal</th>
+                      <th className="pb-4 px-4">Invoice / Referensi</th>
+                      <th className="pb-4 px-4">Nominal</th>
+                      <th className="pb-4 px-4 text-center">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="border-b border-slate-100 hover:bg-slate-50 transition group">
+                      <td className="py-6 px-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 group-hover:bg-slate-900 group-hover:text-white transition">
+                            <Calendar className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <p className="text-sm font-black text-slate-900">12 Feb 2026</p>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">14:30 WIB</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-6 px-4">
+                        <div className="flex items-center gap-2">
+                          <CreditCard className="w-4 h-4 text-slate-400" />
+                          <span className="font-mono text-sm font-black text-slate-700 tracking-wider">INV-LMP-260212</span>
+                        </div>
+                      </td>
+                      <td className="py-6 px-4">
+                        <span className="text-base font-black text-slate-900">Rp 25.000</span>
+                      </td>
+                      <td className="py-6 px-4 text-center">
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-black uppercase tracking-widest text-emerald-600 border border-emerald-200">
+                          <CheckCircle2 className="w-3 h-3" /> Lunas
+                        </span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="text-center mb-16 border-b-4 border-slate-900 pb-10 inline-block w-full">
+              <motion.h1
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="text-4xl md:text-6xl font-black text-slate-900 tracking-tighter uppercase italic"
               >
-                <div className="col-span-2 flex items-center gap-6">
-                  <div className="w-14 h-14 rounded-[1.25rem] bg-slate-900 flex items-center justify-center text-red-600 shadow-xl transform group-hover:rotate-6 transition-transform flex-shrink-0">
-                    <f.icon className="w-7 h-7" />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-black text-slate-900 tracking-tight">{f.name}</h3>
-                    {f.desc && <p className="text-[10px] font-black text-slate-400 mt-1 uppercase tracking-widest leading-none">{f.desc}</p>}
-                  </div>
+                {isRenewal ? (
+                  <>Lanjutkan Keanggotaan <span className="text-red-600">Anda</span></>
+                ) : (
+                  <>Kenapa Harus Jadi <span className="text-red-600">Member?</span></>
+                )}
+              </motion.h1>
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.2 }}
+                className="mt-6 text-xl font-bold text-slate-500 max-w-2xl mx-auto leading-relaxed"
+              >
+                {isRenewal
+                  ? "Masa aktif Anda telah habis. Yuk, perpanjang kontribusi Anda untuk LMP."
+                  : "Dapatkan akses penuh ke seluruh fasilitas organisasi dan jadilah bagian dari perjuangan bersama Nasionalis."
+                }
+              </motion.p>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 items-start mt-12">
+              <motion.div className="lg:col-span-2 space-y-6">
+                {/* Desktop Headers */}
+                <div className="hidden md:grid grid-cols-4 px-8 pb-6 border-b-2 border-slate-900 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
+                  <div className="col-span-2">Fasilitas Keanggotaan</div>
+                  <div className="text-center">Non-Member</div>
+                  <div className="text-center text-red-600">Member Resmi</div>
                 </div>
 
-                {/* Status Column 1: Non-Member */}
-                <div className="mt-8 md:mt-0 flex items-center justify-between md:justify-center border-t border-slate-50 pt-6 md:border-0 md:pt-0">
-                  <span className="md:hidden text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-slate-300" /> Non-Member
-                  </span>
-                  <div className="flex justify-center flex-1 md:flex-none">
-                    {typeof f.non === 'boolean' ? (
-                      f.non ? <CheckCircle2 className="w-7 h-7 text-slate-900" /> : <X className="w-7 h-7 text-slate-200" />
-                    ) : (
-                      <span className="text-sm font-black text-slate-500 uppercase tracking-tighter">{f.non}</span>
-                    )}
-                  </div>
-                </div>
+                {features.map((f, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.1 }}
+                    className="grid grid-cols-1 md:grid-cols-4 items-center p-6 md:p-8 bg-white border-2 border-slate-100 rounded-[2.5rem] hover:shadow-2xl hover:shadow-slate-200/50 transition-all duration-300 group"
+                  >
+                    <div className="col-span-2 flex items-center gap-6">
+                      <div className="w-14 h-14 rounded-[1.25rem] bg-slate-900 flex items-center justify-center text-red-600 shadow-xl transform group-hover:rotate-6 transition-transform flex-shrink-0">
+                        <f.icon className="w-7 h-7" />
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-black text-slate-900 tracking-tight">{f.name}</h3>
+                        {f.desc && <p className="text-[10px] font-black text-slate-400 mt-1 uppercase tracking-widest leading-none">{f.desc}</p>}
+                      </div>
+                    </div>
 
-                {/* Status Column 2: Member Resmi */}
-                <div className="mt-4 md:mt-0 flex items-center justify-between md:justify-center border-t md:border-t-0 border-slate-50 pt-4 md:pt-0">
-                  <span className="md:hidden text-[10px] font-black text-red-600 uppercase tracking-widest flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-red-600 animate-pulse" /> Member Resmi
-                  </span>
-                  <div className="flex justify-center flex-1 md:flex-none">
-                    {typeof f.member === 'boolean' ? (
-                      f.member ? <CheckCircle2 className="w-7 h-7 text-red-600" /> : <Minus className="w-7 h-7 text-slate-100" />
-                    ) : (
-                      <span className="text-sm font-black text-red-600 uppercase tracking-tighter">{f.member}</span>
-                    )}
+                    {/* Status Column 1: Non-Member */}
+                    <div className="mt-8 md:mt-0 flex items-center justify-between md:justify-center border-t border-slate-50 pt-6 md:border-0 md:pt-0">
+                      <span className="md:hidden text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-slate-300" /> Non-Member
+                      </span>
+                      <div className="flex justify-center flex-1 md:flex-none">
+                        {typeof f.non === 'boolean' ? (
+                          f.non ? <CheckCircle2 className="w-7 h-7 text-slate-900" /> : <X className="w-7 h-7 text-slate-200" />
+                        ) : (
+                          <span className="text-sm font-black text-slate-500 uppercase tracking-tighter">{f.non}</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Status Column 2: Member Resmi */}
+                    <div className="mt-4 md:mt-0 flex items-center justify-between md:justify-center border-t md:border-t-0 border-slate-50 pt-4 md:pt-0">
+                      <span className="md:hidden text-[10px] font-black text-red-600 uppercase tracking-widest flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-red-600 animate-pulse" /> Member Resmi
+                      </span>
+                      <div className="flex justify-center flex-1 md:flex-none">
+                        {typeof f.member === 'boolean' ? (
+                          f.member ? <CheckCircle2 className="w-7 h-7 text-red-600" /> : <Minus className="w-7 h-7 text-slate-100" />
+                        ) : (
+                          <span className="text-sm font-black text-red-600 uppercase tracking-tighter">{f.member}</span>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="lg:sticky lg:top-8"
+              >
+                <div className="rounded-[3rem] border-2 border-slate-900 bg-white p-10 shadow-3xl shadow-slate-200 relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-red-600 rounded-full -mr-16 -mt-16 group-hover:scale-110 transition-transform" />
+                  <div className="relative">
+                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-black uppercase tracking-widest mb-8">
+                      <ShieldCheck className="w-4 h-4 text-red-600" /> Kader Premium
+                    </div>
+                    <h2 className="text-3xl font-black text-slate-900 mb-2 uppercase tracking-tighter italic">
+                      {isRenewal ? "Perpanjang" : "Upgrade"} <br /> <span className="text-red-600 font-black">Sekarang</span>
+                    </h2>
+                    <p className="text-slate-500 font-bold text-sm mb-10">Iuran hanya satu kali untuk akses tak terbatas selama 2 tahun.</p>
+                    <div className="flex items-baseline gap-2 mb-10 border-l-4 border-red-600 pl-4">
+                      <span className="text-5xl font-black text-slate-900 leading-none tracking-tighter">Rp 25K</span>
+                      <span className="text-slate-400 text-sm font-black uppercase tracking-widest">/ 2 Tahun</span>
+                    </div>
+                    <button
+                      onClick={handleUpgrade}
+                      disabled={loading || !isSnapReady}
+                      className="w-full relative group/btn overflow-hidden active:scale-95 transition-transform"
+                    >
+                      <div className="absolute -inset-1 bg-red-600 rounded-3xl blur opacity-30 group-hover/btn:opacity-60 transition" />
+                      <div className="relative flex items-center justify-center gap-3 rounded-2xl bg-red-600 py-5 font-black text-lg text-white transition hover:bg-slate-900 shadow-xl shadow-red-200 group-hover/btn:shadow-slate-300">
+                        {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : <>{isRenewal ? "PERPANJANG" : "UPGRADE"} <ArrowRight className="w-6 h-6" /></>}
+                      </div>
+                    </button>
+                    <p className="mt-6 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                      Didukung penuh oleh
+                      <span className="text-slate-900 ml-1">MIDTRANS SECURE PAY</span>
+                    </p>
                   </div>
                 </div>
               </motion.div>
-            ))}
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="lg:sticky lg:top-8"
-          >
-            <div className="rounded-[3rem] border-2 border-slate-900 bg-white p-10 shadow-3xl shadow-slate-200 relative overflow-hidden group">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-red-600 rounded-full -mr-16 -mt-16 group-hover:scale-110 transition-transform" />
-              <div className="relative">
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-black uppercase tracking-widest mb-8">
-                  <ShieldCheck className="w-4 h-4 text-red-600" /> Kader Premium
-                </div>
-                <h2 className="text-3xl font-black text-slate-900 mb-2 uppercase tracking-tighter italic">
-                  {isRenewal ? "Perpanjang" : "Upgrade"} <br /> <span className="text-red-600 font-black">Sekarang</span>
-                </h2>
-                <p className="text-slate-500 font-bold text-sm mb-10">Iuran hanya satu kali untuk akses tak terbatas selama 2 tahun.</p>
-                <div className="flex items-baseline gap-2 mb-10 border-l-4 border-red-600 pl-4">
-                  <span className="text-5xl font-black text-slate-900 leading-none tracking-tighter">Rp 25K</span>
-                  <span className="text-slate-400 text-sm font-black uppercase tracking-widest">/ 2 Tahun</span>
-                </div>
-                <button
-                  onClick={handleUpgrade}
-                  disabled={loading || !isSnapReady}
-                  className="w-full relative group/btn overflow-hidden active:scale-95 transition-transform"
-                >
-                  <div className="absolute -inset-1 bg-red-600 rounded-3xl blur opacity-30 group-hover/btn:opacity-60 transition" />
-                  <div className="relative flex items-center justify-center gap-3 rounded-2xl bg-red-600 py-5 font-black text-lg text-white transition hover:bg-slate-900 shadow-xl shadow-red-200 group-hover/btn:shadow-slate-300">
-                    {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : <>{isRenewal ? "PERPANJANG" : "UPGRADE"} <ArrowRight className="w-6 h-6" /></>}
-                  </div>
-                </button>
-                <p className="mt-6 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                  Didukung penuh oleh
-                  <span className="text-slate-900 ml-1">MIDTRANS SECURE PAY</span>
-                </p>
-              </div>
             </div>
-          </motion.div>
-        </div>
+          </>
+        )}
       </div>
 
       <Toast

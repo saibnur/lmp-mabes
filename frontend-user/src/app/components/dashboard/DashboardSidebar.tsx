@@ -67,15 +67,19 @@ export default function DashboardSidebar() {
   const menuItems = [
     { label: 'Member', href: '/dashboard', icon: User },
     { label: 'Berita', href: '/berita', icon: Newspaper },
-    { label: 'Edit Profil', href: '/dashboard/profil', icon: Settings },
+    { label: 'Edit Profil', href: '/daftar/profil', icon: Settings },
   ];
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full bg-slate-900 text-white">
       <div className="flex items-center justify-between border-b border-slate-800 px-4 py-6 md:justify-center md:border-0">
         <Link href="/" className="group flex items-center gap-3">
-          <div className="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center transform group-hover:rotate-12 transition-transform">
-            <BadgeCheck className="w-5 h-5 text-white" />
+          <div className="relative h-10 w-12 shrink-0 overflow-hidden rounded-lg bg-white p-1 shadow-sm transition-transform group-hover:scale-110">
+            <img
+              src="/logo-lmp.svg"
+              alt="LMP Logo"
+              className="h-full w-full object-contain"
+            />
           </div>
           <span className="text-xl font-black tracking-tighter uppercase italic">
             Mabes <span className="text-red-600">LMP</span>
@@ -169,10 +173,7 @@ export default function DashboardSidebar() {
         <SidebarContent />
       </aside>
 
-      <BottomNavigation
-        membershipStatus={membershipStatus}
-        hasOpenedMembership={hasOpenedMembership}
-      />
+      <BottomNavigation />
     </>
   );
 }

@@ -37,9 +37,14 @@ export default function Footer() {
         <div className="grid gap-10 lg:grid-cols-4">
           {/* Logo & Description */}
           <div className="lg:col-span-2">
-            <div className="flex items-center gap-3 mb-6">
-              {/* <div className="h-14 w-14 bg-red-600 rounded-lg flex items-center justify-center text-white font-bold">LMP</div> */}
-              {/* Replace with actual logo if available */}
+            <div className="flex items-center gap-4 mb-6">
+              <div className="relative h-14 w-16 overflow-hidden rounded-xl bg-white p-1 shadow-lg ring-1 ring-slate-200">
+                <img
+                  src="/logo-lmp.svg"
+                  alt="LMP Logo"
+                  className="h-full w-full object-contain"
+                />
+              </div>
               <div className="flex flex-col">
                 <p className="text-2xl font-black italic tracking-tighter text-white">
                   MABES <span className="text-red-600">LMP</span>

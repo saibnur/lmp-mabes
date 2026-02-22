@@ -18,8 +18,9 @@ export const metadata: Metadata = {
     "Organisasi kemasyarakatan yang menjunjung tinggi nilai Pancasila dan persatuan Indonesia.",
 };
 
-import { UserProfileProvider } from "@/components/dashboard/UserProfileProvider";
-import Providers from "@/components/Providers";
+import { UserProfileProvider } from "@/app/components/dashboard/UserProfileProvider";
+import Providers from "@/app/components/Providers";
+import MainLayoutClient from "@/app/components/layout/MainLayoutClient";
 
 export default function RootLayout({
   children,
@@ -33,7 +34,7 @@ export default function RootLayout({
       >
         <Providers>
           <UserProfileProvider>
-            {children}
+            <MainLayoutClient>{children}</MainLayoutClient>
           </UserProfileProvider>
         </Providers>
       </body>

@@ -84,13 +84,12 @@ export default function Hero() {
             transition={{ duration: 0.5, delay: 0.2 }}
             className="relative flex justify-center lg:justify-end"
           >
-            <div className="relative h-72 w-full max-w-md rounded-2xl bg-slate-100 sm:h-80 lg:h-96">
-              <div className="absolute inset-0 flex items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50">
-                <Users className="h-24 w-24 text-slate-400" />
-                <span className="absolute bottom-6 text-sm font-medium text-slate-500">
-                  Ilustrasi: Orang berkumpul / Bendera
-                </span>
-              </div>
+            <div className="relative h-72 w-full max-w-md rounded-2xl bg-white shadow-2xl sm:h-80 lg:h-96 overflow-hidden flex items-center justify-center p-8 border border-red-50">
+              <img
+                src="/logo-lmp.svg"
+                alt="LMP Logo Massive"
+                className="h-full w-full object-contain"
+              />
             </div>
           </motion.div>
         </div>

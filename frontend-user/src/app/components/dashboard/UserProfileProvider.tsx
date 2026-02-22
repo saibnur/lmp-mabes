@@ -24,6 +24,10 @@ export interface UserProfile {
   no_kta?: string;
   ktpURL?: string;
   hasPassword?: boolean;
+  profileComplete?: boolean;
+  isPaid?: boolean;
+  registrationDate?: Date | null;
+  membershipExpiry?: Date | null;
   organization?: {
     province_id: string;
     province_name: string;
@@ -77,6 +81,12 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
         (snap) => {
           if (snap.exists()) {
             const d = snap.data();
+            const toDate = (ts: any) => {
+              if (!ts) return null;
+              if (typeof ts.toDate === 'function') return ts.toDate();
+              if (ts instanceof Date) return ts;
+              return null;
+            };
             setProfile({
               displayName: d.displayName ?? null,
               phoneNumber: d.phoneNumber ?? d.phone ?? null,
@@ -90,6 +100,10 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
               no_kta: d.no_kta,
               ktpURL: d.ktpURL,
               hasPassword: d.hasPassword ?? false,
+              profileComplete: d.profileComplete ?? false,
+              isPaid: d.isPaid ?? false,
+              registrationDate: toDate(d.registrationDate),
+              membershipExpiry: toDate(d.membershipExpiry),
               organization: d.organization,
             });
           } else {
@@ -100,6 +114,7 @@ export function UserProfileProvider({ children }: { children: ReactNode }) {
               status: 'active',
               membershipStatus: 'pending',
               hasPassword: false,
+              isPaid: false,
             });
           }
           setLoading(false);

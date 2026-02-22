@@ -31,9 +31,13 @@ export default function Navbar() {
   return (
     <header className="fixed top-0 z-[60] w-full border-b border-white/10 bg-white/80 backdrop-blur-xl supports-[backdrop-filter]:bg-white/70">
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 md:px-8">
-        <Link href="/" className="group flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-600 text-white shadow-lg transition-transform group-hover:rotate-6">
-            <span className="text-xs font-black">LMP</span>
+        <Link href="/" className="group flex items-center gap-3">
+          <div className="relative h-10 w-12 shrink-0 overflow-hidden rounded-lg bg-slate-100 p-1 shadow-sm transition-transform group-hover:scale-110">
+            <img
+              src="/logo-lmp.svg"
+              alt="LMP Logo"
+              className="h-full w-full object-contain"
+            />
           </div>
           <span className="text-lg font-black tracking-tighter uppercase italic text-slate-900 sm:text-xl">
             Laskar <span className="text-red-600">Merah Putih</span>

@@ -10,6 +10,8 @@ import {
     Sparkles,
     LayoutGrid,
     Loader2,
+    Download,
+    User,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getFirebaseAuth, getFirestoreDb } from '@/lib/firebase';
@@ -17,12 +19,36 @@ import { doc, onSnapshot, Timestamp, updateDoc } from 'firebase/firestore';
 import { format, differenceInDays, intervalToDuration } from 'date-fns';
 import { id } from 'date-fns/locale';
 import confetti from 'canvas-confetti';
+import { QRCodeSVG } from 'qrcode.react';
 
 export default function StatusKeanggotaanPage() {
     const router = useRouter();
     const [pageLoading, setPageLoading] = useState(true);
     const [userDoc, setUserDoc] = useState<any>(null);
     const hasFiredConfetti = useRef(false);
+    const ktaCardRef = useRef<HTMLDivElement>(null);
+    const [downloading, setDownloading] = useState(false);
+
+    const handleDownloadKta = async () => {
+        if (!ktaCardRef.current) return;
+        setDownloading(true);
+        try {
+            const html2canvas = (await import('html2canvas')).default;
+            const canvas = await html2canvas(ktaCardRef.current, {
+                scale: 3,
+                useCORS: true,
+                backgroundColor: '#0f172a',
+            });
+            const link = document.createElement('a');
+            link.download = `KTA-LMP-${userDoc?.no_kta || 'member'}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        } catch (e) {
+            console.error('Download error:', e);
+        } finally {
+            setDownloading(false);
+        }
+    };
 
     useEffect(() => {
         const auth = getFirebaseAuth();
@@ -234,6 +260,128 @@ export default function StatusKeanggotaanPage() {
                                 </div>
                             )}
                         </motion.div>
+
+                        {/* Digital KTA Card */}
+                        {userDoc?.no_kta && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 16 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.2 }}
+                                className="space-y-4"
+                            >
+                                <div className="flex items-center justify-between">
+                                    <h2 className="text-xs font-black uppercase tracking-widest text-slate-400">KTA Digital Anda</h2>
+                                    <button
+                                        onClick={handleDownloadKta}
+                                        disabled={downloading}
+                                        className="flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-xs font-black text-white transition hover:bg-red-600 disabled:opacity-50"
+                                    >
+                                        {downloading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
+                                        Download KTA
+                                    </button>
+                                </div>
+
+                                {/* KTA Card — Downloadable */}
+                                <div
+                                    ref={ktaCardRef}
+                                    className="relative overflow-hidden rounded-3xl border-2 border-slate-800 bg-slate-900 p-6 shadow-2xl"
+                                    style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #0f172a 100%)' }}
+                                >
+                                    {/* Decorative circles */}
+                                    <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-red-600 opacity-10" />
+                                    <div className="absolute -bottom-8 -left-8 h-24 w-24 rounded-full bg-white opacity-5" />
+
+                                    <div className="relative">
+                                        {/* Header */}
+                                        <div className="mb-5 flex items-center gap-3">
+                                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-600 shadow-lg shadow-red-900/50">
+                                                <ShieldCheck className="h-6 w-6 text-white" />
+                                            </div>
+                                            <div>
+                                                <p className="text-[8px] font-black uppercase tracking-[0.25em] text-white/40">KARTU TANDA ANGGOTA RESMI</p>
+                                                <p className="text-sm font-black uppercase tracking-tight text-white">Laskar Merah Putih</p>
+                                            </div>
+                                            <div className="ml-auto text-right">
+                                                <p className="text-[8px] font-black uppercase tracking-widest text-white/30">Status</p>
+                                                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/20 px-2 py-0.5 text-[9px] font-black uppercase text-emerald-400">
+                                                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                                                    Aktif
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        {/* Member info + QR */}
+                                        <div className="flex items-start gap-4">
+                                            <div className="flex flex-col gap-3">
+                                                <div className="h-24 w-24 shrink-0 overflow-hidden rounded-2xl border-2 border-white/10 bg-slate-800 flex items-center justify-center">
+                                                    {userDoc?.photoURL ? (
+                                                        // eslint-disable-next-line @next/next/no-img-element
+                                                        <img
+                                                            src={userDoc.photoURL}
+                                                            alt="Foto"
+                                                            className="h-full w-full object-cover"
+                                                            crossOrigin="anonymous"
+                                                        />
+                                                    ) : (
+                                                        <User className="h-10 w-10 text-slate-500" />
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            <div className="flex-1 min-w-0">
+                                                <h3 className="text-lg font-black leading-tight text-white truncate">
+                                                    {userDoc?.displayName || '-'}
+                                                </h3>
+                                                {userDoc?.organization?.village_name && (
+                                                    <p className="mt-0.5 text-[10px] font-bold uppercase tracking-wider text-white/50">
+                                                        {userDoc.organization.village_name}, Kec. {userDoc.organization.district_name}
+                                                    </p>
+                                                )}
+                                                {userDoc?.organization?.regency_name && (
+                                                    <p className="text-[9px] text-white/35 font-medium">
+                                                        {userDoc.organization.regency_name}, {userDoc.organization.province_name}
+                                                    </p>
+                                                )}
+
+                                                <div className="mt-3 rounded-xl bg-white/5 px-3 py-2 border border-white/10">
+                                                    <p className="text-[8px] font-black uppercase tracking-[0.2em] text-white/35 mb-0.5">No. KTA</p>
+                                                    <p className="font-black text-white text-sm tracking-widest" style={{ fontFamily: 'monospace' }}>
+                                                        {userDoc.no_kta}
+                                                    </p>
+                                                </div>
+
+                                                {expiryDate && (
+                                                    <p className="mt-2 text-[9px] font-bold text-white/30">
+                                                        Berlaku s/d {format(expiryDate, 'd MMM yyyy', { locale: id })}
+                                                    </p>
+                                                )}
+                                            </div>
+
+                                            {/* QR Code */}
+                                            <div className="shrink-0 flex flex-col items-center gap-1">
+                                                <div className="rounded-xl bg-white p-1.5">
+                                                    <QRCodeSVG
+                                                        value={`https://lmp.or.id/verify?kta=${userDoc.no_kta}`}
+                                                        size={72}
+                                                        level="M"
+                                                        bgColor="#ffffff"
+                                                        fgColor="#0f172a"
+                                                    />
+                                                </div>
+                                                <p className="text-[8px] font-black uppercase tracking-widest text-white/30">Scan Verifikasi</p>
+                                            </div>
+                                        </div>
+
+                                        {/* Footer divider */}
+                                        <div className="mt-4 flex items-center gap-3 border-t border-white/10 pt-3">
+                                            <div className="h-1 w-8 rounded-full bg-red-600" />
+                                            <div className="h-1 flex-1 rounded-full bg-white/10" />
+                                            <p className="text-[8px] font-black uppercase tracking-[0.2em] text-white/20">LMP — Verified Member</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        )}
 
                         {/* Benefits / Notice */}
                         <div className="rounded-[2.5rem] bg-slate-900 p-8 text-white relative overflow-hidden group">

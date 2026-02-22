@@ -1,7 +1,6 @@
 'use client';
 
-import Navbar from '@/components/landing/Navbar';
-import Footer from '@/components/landing/Footer';
+import Footer from '@/app/components/landing/Footer';
 import { motion } from 'framer-motion';
 import { Newspaper, Calendar, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
@@ -56,8 +55,7 @@ const news = [
 
 export default function BeritaPage() {
     return (
-        <div className="min-h-screen bg-white">
-            <Navbar />
+        <div className="bg-white">
 
             {/* Hero Section */}
             <section className="pt-32 pb-20 bg-slate-50">

@@ -1,7 +1,6 @@
 'use client';
 
-import Navbar from '@/components/landing/Navbar';
-import Footer from '@/components/landing/Footer';
+
 import { Users, ChevronDown, ChevronRight, Search, X } from 'lucide-react';
 import { useState, useMemo } from 'react';
 
@@ -271,8 +270,7 @@ export default function OrganisasiPage() {
     };
 
     return (
-        <div className="min-h-screen bg-white">
-            <Navbar />
+        <div className="bg-white">
 
             {/* Hero Section */}
             <section className="pt-32 pb-20 bg-slate-50">
@@ -437,8 +435,6 @@ export default function OrganisasiPage() {
                     </div>
                 </div>
             </section>
-
-            <Footer />
         </div>
     );
 }
