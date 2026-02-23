@@ -3,5 +3,8 @@ node_modules/
 .env.local
 .env.production
 serviceAccountKey.json
+lmp-web-5311a-firebase-adminsdk-fbsvc-dab486f3b8.json
+frontend-user/kta-export(1).html
+.cursorignore
 .vercel
 .env*.local

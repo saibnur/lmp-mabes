@@ -8,8 +8,12 @@ const { verifyToken } = require('../middleware/authMiddleware');
  * All routes are prefixed with /api/members
  */
 
-// Public route for regional data (could be protected if desired, but usually okay as public)
+// Public route for regional data
 router.get('/regions', memberController.getRegions);
+
+// NIK duplicate check (protected - user must be logged in to check)
+// NOTE: POST method so NIK is sent in body, not exposed in URL/query string
+router.post('/check-nik', verifyToken, memberController.checkNik);
 
 // Protected routes
 router.get('/profile', verifyToken, memberController.getProfile);

@@ -14,7 +14,9 @@ const allowedOrigins = [
     'http://localhost:3000',
     'http://localhost:3001',
     'http://localhost:5173',
-    /\.vercel\.app$/,        // Production Frontend (User/Admin)
+    'https://lmp-user.vercel.app',
+    'https://lmp-admin.vercel.app',
+    /\.vercel\.app$/,        // Production Preview Branches
     /\.lovable\.app$/        // Lovable Editor
 ];
 
@@ -30,6 +32,7 @@ app.use(cors({
         if (isAllowed) {
             callback(null, true);
         } else {
+            console.warn('[CORS] Blocked origin:', origin);
             callback(new Error('Not allowed by CORS'));
         }
     },
@@ -50,14 +53,16 @@ const authRoutes = require('./routes/auth');
 const paymentRoutes = require('./routes/paymentRoutes');
 const memberRoutes = require('./routes/memberRoutes');
 const mediaRoutes = require('./routes/mediaRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 
 // Mount routers strictly after middleware
 app.use('/api/auth', authRoutes);
 app.use('/api/payment', paymentRoutes);
 app.use('/api/members', memberRoutes);
 app.use('/api/media', mediaRoutes);
+app.use('/api/admin', adminRoutes);
 
-console.log('[Backend] All routes mounted successfully');
+console.log('[Backend] All routes mounted successfully including Admin Dashboard');
 
 // --- 4. HEALTH CHECK ---
 app.get('/health', (req, res) => {

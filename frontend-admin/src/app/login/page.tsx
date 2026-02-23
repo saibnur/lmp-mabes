@@ -53,10 +53,16 @@ export default function AdminLoginPage() {
       <div className="w-full max-w-md">
         <div className="rounded-2xl border border-indigo-500/20 bg-slate-900/80 p-8 shadow-2xl backdrop-blur">
           <div className="mb-8 flex flex-col items-center gap-2 text-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-600/20">
-              <Shield className="h-6 w-6 text-indigo-400" />
+            <div className="flex items-center justify-center">
+              <div className="relative h-20 w-24 overflow-hidden rounded-xl bg-white/10 p-1 shadow-lg backdrop-blur-sm border border-white/20">
+                <img
+                  src="/logo-lmp.svg"
+                  alt="LMP Logo"
+                  className="h-full w-full object-contain"
+                />
+              </div>
             </div>
-            <h1 className="text-2xl font-bold tracking-tight text-white">Admin LMP Superapp</h1>
+            <h1 className="mt-4 text-2xl font-bold tracking-tight text-white">Admin LMP Superapp</h1>
             <p className="text-sm text-slate-400">
               Masuk dengan nomor WhatsApp dan password admin
             </p>

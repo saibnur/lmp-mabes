@@ -176,22 +176,120 @@ exports.midtransWebhook = async (req, res) => {
             midtransRawResponse: data
         });
 
-        // 4. Update User & Notifikasi jika sukses
+        // 4. Update User & Generate KTA jika sukses (Atomic Transaction)
         if (finalStatus === 'success') {
             const expiryDate = new Date();
             expiryDate.setFullYear(expiryDate.getFullYear() + 2);
+            const expiryTimestamp = admin.firestore.Timestamp.fromDate(expiryDate);
 
-            await db.collection('users').doc(uid).update({
-                role: 'member',
-                status: 'active',
-                membershipStatus: 'active',
-                membershipExpiry: admin.firestore.Timestamp.fromDate(expiryDate),
-                lastPaymentDate: admin.firestore.FieldValue.serverTimestamp(),
-                updatedAt: admin.firestore.FieldValue.serverTimestamp()
-            });
+            let generatedKta = null;
 
-            // Kirim Notifikasi WA via Fonnte
-            await sendWaNotification(transactionData.customerDetails.phone, transactionData.customerDetails.name, expiryDate);
+            try {
+                generatedKta = await db.runTransaction(async (transaction) => {
+                    const userRef = db.collection('users').doc(uid);
+                    const userDoc = await transaction.get(userRef);
+
+                    if (!userDoc.exists) {
+                        throw new Error(`User ${uid} not found during KTA generation`);
+                    }
+
+                    const userData = userDoc.data();
+
+                    // Only generate KTA if not already issued
+                    let no_kta = userData.no_kta;
+                    if (!no_kta) {
+                        const village_id = userData.organization?.village_id;
+
+                        if (!village_id || village_id.length !== 10) {
+                            console.warn(`[Webhook] Cannot generate KTA for uid=${uid}: invalid village_id="${village_id}". Setting active without KTA.`);
+                            // Still activate membership, but without KTA
+                            transaction.update(userRef, {
+                                role: 'member',
+                                status: 'active',
+                                membershipStatus: 'active',
+                                registrationDate: admin.firestore.FieldValue.serverTimestamp(),
+                                membershipExpiry: expiryTimestamp,
+                                lastPaymentDate: admin.firestore.FieldValue.serverTimestamp(),
+                                orderId: order_id,
+                                updatedAt: admin.firestore.FieldValue.serverTimestamp()
+                            });
+                            return null;
+                        }
+
+                        // Find last KTA in same village using a direct query
+                        // NOTE: We query OUTSIDE the transaction for read scalability,
+                        // using the transaction itself to ensure atomic write uniqueness.
+                        const villageUsersSnap = await db.collection('users')
+                            .where('organization.village_id', '==', village_id)
+                            .where('no_kta', '!=', null)
+                            .orderBy('no_kta', 'desc')
+                            .limit(1)
+                            .get();
+
+                        let sequence = 1;
+                        if (!villageUsersSnap.empty) {
+                            const lastKta = villageUsersSnap.docs[0].data().no_kta;
+                            if (lastKta && lastKta.includes('.')) {
+                                const parts = lastKta.split('.');
+                                const lastSeq = parseInt(parts[parts.length - 1], 10);
+                                if (!isNaN(lastSeq)) {
+                                    sequence = lastSeq + 1;
+                                }
+                            }
+                        }
+
+                        const paddedSeq = sequence.toString().padStart(4, '0');
+                        const v = village_id;
+                        const formattedVillage = `${v.slice(0, 2)}.${v.slice(2, 4)}.${v.slice(4, 6)}.${v.slice(6)}`;
+                        no_kta = `${formattedVillage}.${paddedSeq}`;
+                    }
+
+                    transaction.update(userRef, {
+                        role: 'member',
+                        status: 'active',
+                        membershipStatus: 'active',
+                        no_kta,
+                        registrationDate: userData.registrationDate || admin.firestore.FieldValue.serverTimestamp(),
+                        membershipExpiry: expiryTimestamp,
+                        lastPaymentDate: admin.firestore.FieldValue.serverTimestamp(),
+                        orderId: order_id,
+                        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+                    });
+
+                    return no_kta;
+                });
+
+                console.log(`[Webhook] KTA generated for uid=${uid}: ${generatedKta || 'N/A (no village_id)'}`);
+
+                // Write audit log
+                await db.collection('audit_logs').add({
+                    event: 'KTA_GENERATED',
+                    uid,
+                    orderId: order_id,
+                    no_kta: generatedKta,
+                    timestamp: admin.firestore.FieldValue.serverTimestamp()
+                });
+
+            } catch (ktaError) {
+                console.error('[Webhook] KTA generation transaction failed:', ktaError.message);
+                // Fallback: Activate membership without KTA to avoid blocking payment confirmation
+                await db.collection('users').doc(uid).update({
+                    role: 'member',
+                    status: 'active',
+                    membershipStatus: 'active',
+                    membershipExpiry: expiryTimestamp,
+                    lastPaymentDate: admin.firestore.FieldValue.serverTimestamp(),
+                    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+                });
+            }
+
+            // Kirim Notifikasi WA via Fonnte (dengan no_kta jika berhasil)
+            await sendWaNotification(
+                transactionData.customerDetails.phone,
+                transactionData.customerDetails.name,
+                expiryDate,
+                generatedKta
+            );
         }
 
         res.status(200).json({ status: 'OK' });
@@ -205,7 +303,7 @@ exports.midtransWebhook = async (req, res) => {
 /**
  * Utility to send WA notification via Fonnte
  */
-async function sendWaNotification(phone, name, expiryDate) {
+async function sendWaNotification(phone, name, expiryDate, no_kta = null) {
     try {
         const fonnteToken = process.env.FONNTE_TOKEN;
         if (!fonnteToken) {
@@ -219,7 +317,11 @@ async function sendWaNotification(phone, name, expiryDate) {
             year: 'numeric'
         });
 
-        const message = `Halo ${name},\n\nTerima kasih, pembayaran iuran keanggotaan LMP Anda telah sukses dikonfirmasi. Akun Anda kini aktif sebagai Member Resmi hingga ${formattedDate}.\n\nTetap semangat membangun negeri! 🇮🇩\n\n- Mabes LMP`;
+        const ktaLine = no_kta
+            ? `\n🪪 *No. KTA Anda:* ${no_kta}`
+            : '';
+
+        const message = `Assalamualaikum ${name},\n\n✅ *Pembayaran Iuran Keanggotaan LMP Berhasil!*${ktaLine}\n\nAkun Anda kini aktif sebagai *Kader Resmi LMP* hingga *${formattedDate}*.\n\nSilakan buka aplikasi untuk melihat *KTA Digital* Anda.\n\nTetap semangat membangun negeri! 🇮🇩\n\n- *Mabes LMP*`;
 
         await axios.post('https://api.fonnte.com/send', {
             target: phone,

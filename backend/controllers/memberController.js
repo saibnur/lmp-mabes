@@ -32,7 +32,35 @@ exports.getRegions = async (req, res) => {
     }
 };
 
+// POST /api/members/check-nik
+// Body: { nik } — used for real-time NIK duplicate check on the frontend
+// Using POST so NIK is never exposed in the URL/query string
+exports.checkNik = async (req, res) => {
+    const { nik } = req.body;
+
+    if (!nik || nik.length !== 16) {
+        return res.status(400).json({ success: false, message: 'NIK tidak valid (harus 16 digit)' });
+    }
+
+    try {
+        const snapshot = await db.collection('users')
+            .where('nik', '==', nik)
+            .limit(1)
+            .get();
+
+        // If found AND it belongs to a different user, it's a duplicate
+        const isDuplicate = !snapshot.empty && snapshot.docs[0].id !== req.uid;
+
+        res.status(200).json({ success: true, exists: isDuplicate });
+    } catch (error) {
+        console.error('[MemberController] Check NIK error:', error.message);
+        res.status(500).json({ success: false, message: 'Gagal memeriksa NIK' });
+    }
+};
+
 // POST /api/members/update-profile
+// NOTE: KTA no_kta is generated ONLY via the payment webhook (paymentController.js).
+// This endpoint only saves profile data. If a user already has a no_kta, it is preserved.
 exports.updateProfile = async (req, res) => {
     const {
         fullName,
@@ -44,77 +72,72 @@ exports.updateProfile = async (req, res) => {
         ktpURL
     } = req.body;
 
-    if (!nik || !organization || !organization.village_id) {
-        return res.status(400).json({ success: false, message: 'NIK dan Data Wilayah (Desa) wajib diisi' });
+    if (!fullName || !fullName.trim()) {
+        return res.status(400).json({ success: false, message: 'Nama lengkap wajib diisi' });
+    }
+
+    if (!nik || nik.length !== 16) {
+        return res.status(400).json({ success: false, message: 'NIK wajib 16 digit' });
+    }
+
+    if (!organization || !organization.village_id) {
+        return res.status(400).json({ success: false, message: 'Data Wilayah Desa wajib diisi sebelum menyimpan profil' });
     }
 
     const userRef = db.collection('users').doc(req.uid);
 
     try {
-        const updatedUser = await db.runTransaction(async (transaction) => {
-            const userDoc = await transaction.get(userRef);
-            if (!userDoc.exists) {
-                throw new Error('User not found');
+        // NIK duplicate check — fail if another user has the same NIK
+        const nikSnapshot = await db.collection('users')
+            .where('nik', '==', nik)
+            .limit(2)
+            .get();
+
+        for (const doc of nikSnapshot.docs) {
+            if (doc.id !== req.uid) {
+                return res.status(409).json({
+                    success: false,
+                    message: 'NIK sudah terdaftar di akun lain. Hubungi Mabes jika Anda merasa ini kesalahan.'
+                });
             }
+        }
 
-            const userData = userDoc.data();
-            let no_kta = userData.no_kta;
+        const userDoc = await userRef.get();
+        if (!userDoc.exists) {
+            return res.status(404).json({ success: false, message: 'User tidak ditemukan' });
+        }
 
-            // Generate KTA if not exists
-            if (!no_kta) {
-                const village_id = organization.village_id;
+        const userData = userDoc.data();
 
-                const lastUserSnapshot = await db.collection('users')
-                    .where('organization.village_id', '==', village_id)
-                    .orderBy('no_kta', 'desc')
-                    .limit(1)
-                    .get();
+        const updatePayload = {
+            displayName: fullName.trim(),
+            nik,
+            email: email || userData.email || '',
+            phoneNumber: phoneNumber || userData.phoneNumber || '',
+            photoURL: photoURL || userData.photoURL || '',
+            ktpURL: ktpURL || userData.ktpURL || '',
+            // Preserve existing no_kta (only payment webhook can set this)
+            organization: {
+                ...organization,
+                updatedAt: new Date().toISOString()
+            },
+            profileComplete: true,
+            updatedAt: getFirebaseAdmin().firestore.FieldValue.serverTimestamp()
+        };
 
-                let sequence = 1;
-                if (!lastUserSnapshot.empty) {
-                    const lastKta = lastUserSnapshot.docs[0].data().no_kta;
-                    if (lastKta && lastKta.includes('.')) {
-                        const parts = lastKta.split('.');
-                        const lastSeq = parseInt(parts[parts.length - 1], 10);
-                        if (!isNaN(lastSeq)) {
-                            sequence = lastSeq + 1;
-                        }
-                    }
-                }
+        await userRef.update(updatePayload);
 
-                const paddedSeq = sequence.toString().padStart(4, '0');
-                const v = village_id;
-                let formattedVillage = v;
-                if (v && v.length === 10) {
-                    formattedVillage = `${v.slice(0, 2)}.${v.slice(2, 4)}.${v.slice(4, 6)}.${v.slice(6)}`;
-                }
-
-                no_kta = `${formattedVillage}.${paddedSeq}`;
-            }
-
-            const updatePayload = {
-                displayName: fullName,
-                nik,
-                email: email || userData.email || '',
-                phoneNumber: phoneNumber || userData.phoneNumber || '',
-                photoURL: photoURL || userData.photoURL || '',
-                ktpURL: ktpURL || userData.ktpURL || '',
-                no_kta,
-                organization: {
-                    ...organization,
-                    updatedAt: new Date().toISOString()
-                },
-                updatedAt: getFirebaseAdmin().firestore.FieldValue.serverTimestamp()
-            };
-
-            transaction.update(userRef, updatePayload);
-            return { ...userData, ...updatePayload, uid: req.uid };
+        // Write audit log
+        await db.collection('audit_logs').add({
+            event: 'PROFILE_UPDATED',
+            uid: req.uid,
+            timestamp: getFirebaseAdmin().firestore.FieldValue.serverTimestamp()
         });
 
         res.status(200).json({
             success: true,
-            message: 'Profil berhasil diperbarui',
-            data: updatedUser
+            message: 'Profil berhasil disimpan. Lanjutkan ke pembayaran untuk menerima KTA.',
+            data: { ...userData, ...updatePayload, uid: req.uid }
         });
     } catch (error) {
         console.error('[MemberController] Update profile error:', error);

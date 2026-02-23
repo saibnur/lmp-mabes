@@ -70,6 +70,16 @@ try {
   console.error('[LMP Backend] Failed to load media routes:', err.message);
 }
 
+// Admin routes
+let adminRoutes;
+try {
+  adminRoutes = require('./routes/adminRoutes');
+  app.use('/api/admin', adminRoutes);
+  console.log('[LMP Backend] Admin routes mounted at /api/admin');
+} catch (err) {
+  console.error('[LMP Backend] Failed to load admin routes:', err.message);
+}
+
 // Health check
 app.get('/health', (req, res) => {
   res.json({

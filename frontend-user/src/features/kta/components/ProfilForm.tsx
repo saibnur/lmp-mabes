@@ -15,6 +15,7 @@ import { uploadToCloudinary } from '@/lib/cloudinary';
 import Toast from '@/app/components/Toast';
 import Cropper from 'react-easy-crop';
 import getCroppedImg from '@/lib/cropImage';
+import KtaCard from './KtaCard';
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Types
@@ -855,38 +856,16 @@ export default function DaftarProfilPage() {
                                 </div>
 
                                 {/* KTA Card */}
-                                <div className="relative overflow-hidden rounded-3xl border-2 border-slate-900 bg-slate-900 p-6 shadow-2xl shadow-slate-900/30">
-                                    <div className="absolute inset-0 opacity-5">
-                                        <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-red-600" />
-                                        <div className="absolute -bottom-8 -left-8 h-24 w-24 rounded-full bg-white" />
-                                    </div>
-                                    <div className="relative">
-                                        <div className="mb-4 flex items-center gap-3">
-                                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-600 shadow-lg">
-                                                <ShieldCheck className="h-6 w-6 text-white" />
-                                            </div>
-                                            <div>
-                                                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-white/50">KARTU TANDA ANGGOTA</p>
-                                                <p className="text-sm font-black uppercase tracking-tight text-white">Laskar Merah Putih</p>
-                                            </div>
-                                        </div>
-
-                                        <div className="flex items-center gap-4">
-                                            <div className="h-20 w-20 shrink-0 overflow-hidden rounded-2xl border-2 border-white/20 bg-slate-800 flex items-center justify-center">
-                                                {previews.photo ? (
-                                                    <img src={previews.photo} alt="Foto" className="h-full w-full object-cover" />
-                                                ) : (
-                                                    <User className="h-10 w-10 text-slate-500" />
-                                                )}
-                                            </div>
-                                            <div className="flex-1">
-                                                <p className="text-lg font-black leading-tight text-white">{form.displayName || 'Nama Anda'}</p>
-                                                <p className="mt-0.5 text-xs font-bold text-white/50 uppercase tracking-widest">
-                                                    {effectiveWilayah.levelLabel || 'Markas'}{effectiveWilayah.name ? ` — ${effectiveWilayah.name}` : ''}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
+                                <div className="w-full flex justify-center py-4 bg-slate-100 rounded-3xl overflow-hidden border-2 border-slate-200">
+                                    <KtaCard
+                                        scale={0.35}
+                                        photoUrl={previews.photo || ''}
+                                        displayName={form.displayName || 'NAMA ANDA'}
+                                        orgLevel={orgLevel || undefined}
+                                        regionNames={selNames}
+                                        noKta={existingNoKta || '----------------'}
+                                        isActive={!!existingNoKta}
+                                    />
                                 </div>
 
                                 {/* Data confirmation table */}

@@ -1,0 +1,30 @@
+<svg width="500" height="400" viewBox="0 0 500 400" xmlns="http://www.w3.org/2000/svg">
+  <rect width="500" height="400" rx="30" fill="#C0C0C0" />
+  <rect x="10" y="10" width="480" height="380" rx="25" fill="none" stroke="#00008B" stroke-width="12" />
+  
+  <!-- Flag Pole -->
+  <path d="M60 40 L40 280 L55 280 L75 40 Z" fill="black" />
+  
+  <!-- Flag (Red) -->
+  <path d="M75 40 C 150 20, 250 80, 460 40 L 460 140 C 250 180, 150 120, 75 140 Z" fill="#FF0000" />
+  <!-- Flag (White) -->
+  <path d="M75 140 C 150 120, 250 180, 460 140 L 460 240 C 250 280, 150 220, 75 240 Z" fill="#FFFFFF" />
+  
+  <!-- People Silhouettes (Simplified) -->
+  <path d="M80 320 
+           C 90 280, 110 280, 120 320 
+           C 130 280, 150 280, 160 320 
+           C 170 280, 190 280, 200 320 
+           C 210 280, 230 280, 240 320 
+           C 250 280, 270 280, 280 320 
+           C 290 280, 310 280, 320 320 
+           C 330 280, 350 280, 360 320 
+           C 370 280, 390 280, 400 320 
+           C 410 280, 430 280, 440 320
+           L 440 320 L 80 320 Z" 
+        fill="#000080" />
+  <rect x="80" y="310" width="360" height="15" fill="#000080" />
+  
+  <!-- Text -->
+  <text x="250" y="375" font-family="'Arial Black', Gadget, sans-serif" font-weight="900" font-size="44" text-anchor="middle" fill="#FF0000" style="letter-spacing: 2px;">LASKAR MERAH PUTIH</text>
+</svg>

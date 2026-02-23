@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
 import {
     ShieldCheck,
@@ -12,6 +12,7 @@ import {
     Loader2,
     Download,
     User,
+    Settings2,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getFirebaseAuth, getFirestoreDb } from '@/lib/firebase';
@@ -20,6 +21,8 @@ import { format, differenceInDays, intervalToDuration } from 'date-fns';
 import { id } from 'date-fns/locale';
 import confetti from 'canvas-confetti';
 import { QRCodeSVG } from 'qrcode.react';
+import KtaCard from '@/features/kta/components/KtaCard';
+import { KtaCardConfig, DEFAULT_KTA_CONFIG } from '@/features/kta/types/KtaCardConfig';
 
 export default function StatusKeanggotaanPage() {
     const router = useRouter();
@@ -28,24 +31,104 @@ export default function StatusKeanggotaanPage() {
     const hasFiredConfetti = useRef(false);
     const ktaCardRef = useRef<HTMLDivElement>(null);
     const [downloading, setDownloading] = useState(false);
+    const [ktaConfig, setKtaConfig] = useState<KtaCardConfig>(DEFAULT_KTA_CONFIG);
+
+    // Load KTA config dari /api/kta-config
+    useEffect(() => {
+        fetch('/api/kta-config')
+            .then(r => r.ok ? r.json() : Promise.reject(r.status))
+            .then((data: KtaCardConfig) => {
+                setKtaConfig(prev => ({ ...prev, ...data }));
+            })
+            .catch(() => { /* fallback ke DEFAULT_KTA_CONFIG */ });
+    }, []);
 
     const handleDownloadKta = async () => {
         if (!ktaCardRef.current) return;
         setDownloading(true);
+
+        // Isolated off-screen container — completely detached from body CSS
+        const offscreenWrapper = document.createElement('div');
+        Object.assign(offscreenWrapper.style, {
+            all: 'initial',           // Reset SEMUA CSS inherited dari body/global
+            position: 'fixed',
+            left: '-99999px',
+            top: '0',
+            zIndex: '-9999',
+            overflow: 'hidden',
+            lineHeight: '1',
+            fontSize: '16px',         // baseline agar 'em' units stabil
+        } as CSSProperties);
+        document.body.appendChild(offscreenWrapper);
+
         try {
+            const nativeW = ktaConfig.canvas?.width ?? 800;
+            const nativeH = ktaConfig.canvas?.height ?? 1280;
+
+            // Clone the inner KtaCard div (ref points to it)
+            const clone = ktaCardRef.current.cloneNode(true) as HTMLElement;
+
+            // Override SEMUA style pada clone: hapus transform scale, pastikan ukuran native
+            Object.assign(clone.style, {
+                position: 'relative',
+                top: '0',
+                left: '0',
+                width: `${nativeW}px`,
+                height: `${nativeH}px`,
+                transform: 'none',          // hapus scale(0.45)
+                transformOrigin: 'top left',
+                boxShadow: 'none',
+                margin: '0',
+                padding: '0',
+                lineHeight: '1',
+                fontSize: '16px',
+                overflow: 'hidden',
+            } as CSSProperties);
+
+            // Inject style tag ke dalam clone untuk mereset semua elemen anak
+            // Ini kunci utama: mencegah line-height dari global CSS melorot ke teks absolut
+            const resetStyle = document.createElement('style');
+            resetStyle.textContent = `
+                * {
+                    box-sizing: border-box !important;
+                    line-height: 1 !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    font-synthesis: none !important;
+                }
+            `;
+            clone.insertBefore(resetStyle, clone.firstChild);
+
+            offscreenWrapper.appendChild(clone);
+
+            // Tunggu SEMUA font Google selesai di-load sebelum capture
+            await document.fonts.ready;
+            // Beri extra tick agar browser menyelesaikan layout setelah font loaded
+            await new Promise(r => setTimeout(r, 300));
+
             const html2canvas = (await import('html2canvas')).default;
-            const canvas = await html2canvas(ktaCardRef.current, {
-                scale: 3,
+            const canvas = await html2canvas(clone, {
+                scale: 2,             // High DPI: 2x agar gambar tajam
+                width: nativeW,
+                height: nativeH,
                 useCORS: true,
-                backgroundColor: '#0f172a',
+                allowTaint: true,
+                backgroundColor: ktaConfig.canvas?.backgroundColor ?? '#111113',
+                // Clone ada di posisi fixed off-screen, paksa scroll offset = 0
+                scrollX: 0,
+                scrollY: 0,
+                logging: false,
             });
+
             const link = document.createElement('a');
             link.download = `KTA-LMP-${userDoc?.no_kta || 'member'}.png`;
-            link.href = canvas.toDataURL('image/png');
+            link.href = canvas.toDataURL('image/png', 1.0);
             link.click();
         } catch (e) {
-            console.error('Download error:', e);
+            console.error('Download KTA error:', e);
+            alert('Gagal mengunduh KTA. Silakan coba lagi.');
         } finally {
+            document.body.removeChild(offscreenWrapper);
             setDownloading(false);
         }
     };
@@ -170,6 +253,14 @@ export default function StatusKeanggotaanPage() {
 
     const isHabisHariIni = diffDays === 0;
 
+    const orgLevel = userDoc?.organization?.level as ('daerah' | 'cabang' | 'anak-cabang' | 'ranting' | '') | undefined;
+    const orgRegionNames = userDoc?.organization ? {
+        provinceName: userDoc.organization.province_name || '',
+        regencyName: userDoc.organization.regency_name || '',
+        districtName: userDoc.organization.district_name || '',
+        villageName: userDoc.organization.village_name || '',
+    } : undefined;
+
     return (
         <div className="min-h-screen bg-white pb-20">
             <div className="mx-auto max-w-5xl px-6 pt-12">
@@ -271,114 +362,40 @@ export default function StatusKeanggotaanPage() {
                             >
                                 <div className="flex items-center justify-between">
                                     <h2 className="text-xs font-black uppercase tracking-widest text-slate-400">KTA Digital Anda</h2>
-                                    <button
-                                        onClick={handleDownloadKta}
-                                        disabled={downloading}
-                                        className="flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-xs font-black text-white transition hover:bg-red-600 disabled:opacity-50"
-                                    >
-                                        {downloading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
-                                        Download KTA
-                                    </button>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            onClick={() => router.push('/dashboard/kta-format-editor')}
+                                            className="flex items-center gap-2 rounded-xl border-2 border-slate-200 bg-white px-4 py-2 text-xs font-black text-slate-700 transition hover:border-slate-900"
+                                        >
+                                            <Settings2 className="h-3 w-3" />
+                                            Edit Format
+                                        </button>
+                                        <button
+                                            onClick={handleDownloadKta}
+                                            disabled={downloading}
+                                            className="flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-xs font-black text-white transition hover:bg-red-600 disabled:opacity-50"
+                                        >
+                                            {downloading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
+                                            Download KTA
+                                        </button>
+                                    </div>
                                 </div>
 
                                 {/* KTA Card — Downloadable */}
-                                <div
-                                    ref={ktaCardRef}
-                                    className="relative overflow-hidden rounded-3xl border-2 border-slate-800 bg-slate-900 p-6 shadow-2xl"
-                                    style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #0f172a 100%)' }}
-                                >
-                                    {/* Decorative circles */}
-                                    <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-red-600 opacity-10" />
-                                    <div className="absolute -bottom-8 -left-8 h-24 w-24 rounded-full bg-white opacity-5" />
-
-                                    <div className="relative">
-                                        {/* Header */}
-                                        <div className="mb-5 flex items-center gap-3">
-                                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-600 shadow-lg shadow-red-900/50">
-                                                <ShieldCheck className="h-6 w-6 text-white" />
-                                            </div>
-                                            <div>
-                                                <p className="text-[8px] font-black uppercase tracking-[0.25em] text-white/40">KARTU TANDA ANGGOTA RESMI</p>
-                                                <p className="text-sm font-black uppercase tracking-tight text-white">Laskar Merah Putih</p>
-                                            </div>
-                                            <div className="ml-auto text-right">
-                                                <p className="text-[8px] font-black uppercase tracking-widest text-white/30">Status</p>
-                                                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/20 px-2 py-0.5 text-[9px] font-black uppercase text-emerald-400">
-                                                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                                                    Aktif
-                                                </span>
-                                            </div>
-                                        </div>
-
-                                        {/* Member info + QR */}
-                                        <div className="flex items-start gap-4">
-                                            <div className="flex flex-col gap-3">
-                                                <div className="h-24 w-24 shrink-0 overflow-hidden rounded-2xl border-2 border-white/10 bg-slate-800 flex items-center justify-center">
-                                                    {userDoc?.photoURL ? (
-                                                        // eslint-disable-next-line @next/next/no-img-element
-                                                        <img
-                                                            src={userDoc.photoURL}
-                                                            alt="Foto"
-                                                            className="h-full w-full object-cover"
-                                                            crossOrigin="anonymous"
-                                                        />
-                                                    ) : (
-                                                        <User className="h-10 w-10 text-slate-500" />
-                                                    )}
-                                                </div>
-                                            </div>
-
-                                            <div className="flex-1 min-w-0">
-                                                <h3 className="text-lg font-black leading-tight text-white truncate">
-                                                    {userDoc?.displayName || '-'}
-                                                </h3>
-                                                {userDoc?.organization?.village_name && (
-                                                    <p className="mt-0.5 text-[10px] font-bold uppercase tracking-wider text-white/50">
-                                                        {userDoc.organization.village_name}, Kec. {userDoc.organization.district_name}
-                                                    </p>
-                                                )}
-                                                {userDoc?.organization?.regency_name && (
-                                                    <p className="text-[9px] text-white/35 font-medium">
-                                                        {userDoc.organization.regency_name}, {userDoc.organization.province_name}
-                                                    </p>
-                                                )}
-
-                                                <div className="mt-3 rounded-xl bg-white/5 px-3 py-2 border border-white/10">
-                                                    <p className="text-[8px] font-black uppercase tracking-[0.2em] text-white/35 mb-0.5">No. KTA</p>
-                                                    <p className="font-black text-white text-sm tracking-widest" style={{ fontFamily: 'monospace' }}>
-                                                        {userDoc.no_kta}
-                                                    </p>
-                                                </div>
-
-                                                {expiryDate && (
-                                                    <p className="mt-2 text-[9px] font-bold text-white/30">
-                                                        Berlaku s/d {format(expiryDate, 'd MMM yyyy', { locale: id })}
-                                                    </p>
-                                                )}
-                                            </div>
-
-                                            {/* QR Code */}
-                                            <div className="shrink-0 flex flex-col items-center gap-1">
-                                                <div className="rounded-xl bg-white p-1.5">
-                                                    <QRCodeSVG
-                                                        value={`https://lmp.or.id/verify?kta=${userDoc.no_kta}`}
-                                                        size={72}
-                                                        level="M"
-                                                        bgColor="#ffffff"
-                                                        fgColor="#0f172a"
-                                                    />
-                                                </div>
-                                                <p className="text-[8px] font-black uppercase tracking-widest text-white/30">Scan Verifikasi</p>
-                                            </div>
-                                        </div>
-
-                                        {/* Footer divider */}
-                                        <div className="mt-4 flex items-center gap-3 border-t border-white/10 pt-3">
-                                            <div className="h-1 w-8 rounded-full bg-red-600" />
-                                            <div className="h-1 flex-1 rounded-full bg-white/10" />
-                                            <p className="text-[8px] font-black uppercase tracking-[0.2em] text-white/20">LMP — Verified Member</p>
-                                        </div>
-                                    </div>
+                                <div className="w-full flex justify-center py-4 bg-slate-100 rounded-3xl shadow-inner border-2 border-slate-200 overflow-hidden">
+                                    <KtaCard
+                                        ref={ktaCardRef}
+                                        config={ktaConfig}
+                                        scale={ktaConfig.preview?.scale ?? 0.45}
+                                        photoUrl={userDoc?.photoURL || ''}
+                                        displayName={userDoc?.displayName || 'NAMA ANDA'}
+                                        orgLevel={orgLevel}
+                                        regionNames={orgRegionNames}
+                                        jabatanText="ANGGOTA"
+                                        noKta={userDoc.no_kta}
+                                        isActive={userDoc?.membershipStatus === 'active'}
+                                        expiryDate={expiryDate}
+                                    />
                                 </div>
                             </motion.div>
                         )}
