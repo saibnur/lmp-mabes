@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   CheckCircle2, X, ArrowRight, ShieldCheck, Scale, Network,
   GraduationCap, Shirt, TrendingUp, LayoutGrid, Loader2,
@@ -36,6 +36,8 @@ export default function PembayaranPage() {
   const [membershipStatus, setMembershipStatus] = useState<string | null>(null);
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' as 'success' | 'error' });
 
+  const searchParams = useSearchParams();
+
   useEffect(() => {
     const auth = getFirebaseAuth();
     const db = getFirestoreDb();
@@ -69,6 +71,25 @@ export default function PembayaranPage() {
     return () => { unsubAuth(); unsubSnap?.(); };
   }, [router]);
 
+  // Handle Midtrans Redirect Query Params
+  useEffect(() => {
+    const transactionStatus = searchParams.get('transaction_status');
+    const orderId = searchParams.get('order_id');
+
+    if (transactionStatus && orderId) {
+      if (transactionStatus === 'settlement' || transactionStatus === 'capture') {
+        setToast({ show: true, message: 'Pembayaran diterima! Sedang mengaktifkan keanggotaan...', type: 'success' });
+      } else if (transactionStatus === 'pending') {
+        setToast({ show: true, message: 'Menunggu konfirmasi pembayaran Anda.', type: 'success' });
+      } else {
+        setToast({ show: true, message: `Status pembayaran: ${transactionStatus}`, type: 'error' });
+      }
+
+      // Clean up URL to avoid re-triggering this effect
+      router.replace('/dashboard/pembayaran');
+    }
+  }, [searchParams, router]);
+
   const updateStatusManual = async () => {
     try {
       const auth = getFirebaseAuth();
@@ -100,12 +121,12 @@ export default function PembayaranPage() {
       const { data } = await paymentApi.createTransaction(idToken);
       if (data.success && data.token) {
         window.snap.pay(data.token, {
-          onSuccess: async () => {
+          onSuccess: async (result: any) => {
             if (process.env.NODE_ENV === 'development') await updateStatusManual();
             else setToast({ show: true, message: 'Pembayaran berhasil! Mohon tunggu sinkronisasi...', type: 'success' });
           },
-          onPending: () => setToast({ show: true, message: 'Menunggu konfirmasi pembayaran...', type: 'success' }),
-          onError: () => setToast({ show: true, message: 'Pembayaran gagal. Coba lagi.', type: 'error' }),
+          onPending: (result: any) => setToast({ show: true, message: 'Menunggu konfirmasi pembayaran...', type: 'success' }),
+          onError: (result: any) => setToast({ show: true, message: 'Pembayaran gagal. Coba lagi.', type: 'error' }),
           onClose: () => setToast({ show: true, message: 'Pembayaran dibatalkan.', type: 'error' }),
         });
       }
