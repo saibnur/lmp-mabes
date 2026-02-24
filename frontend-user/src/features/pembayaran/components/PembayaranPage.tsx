@@ -69,6 +69,16 @@ export default function PembayaranPage() {
     return () => { unsubAuth(); unsubSnap?.(); };
   }, [router]);
 
+  // Handle auto-redirect to dashboard when membership is active
+  useEffect(() => {
+    if (membershipStatus === 'active') {
+      const timer = setTimeout(() => {
+        router.push('/dashboard');
+      }, 3000); // Wait 3 seconds to let user see "Redirecting" message
+      return () => clearTimeout(timer);
+    }
+  }, [membershipStatus, router]);
+
   const updateStatusManual = async () => {
     try {
       const auth = getFirebaseAuth();
@@ -101,8 +111,14 @@ export default function PembayaranPage() {
       if (data.success && data.token) {
         window.snap.pay(data.token, {
           onSuccess: async () => {
-            if (process.env.NODE_ENV === 'development') await updateStatusManual();
-            else setToast({ show: true, message: 'Pembayaran berhasil! Mohon tunggu sinkronisasi...', type: 'success' });
+            setToast({ show: true, message: 'Pembayaran berhasil! Mengubah status...', type: 'success' });
+            // Always update client-side status to trigger instant UI reflect
+            // We ignore process.env.NODE_ENV because Firestore security rules currently allow this,
+            // bridging the gap while waiting for the webhook. Webhook will still process KTA.
+            await updateStatusManual();
+
+            // At this point, the onSnapshot listener will catch the "active" status
+            // and trigger the auto-redirect defined in useEffect previously.
           },
           onPending: () => setToast({ show: true, message: 'Menunggu konfirmasi pembayaran...', type: 'success' }),
           onError: () => setToast({ show: true, message: 'Pembayaran gagal. Coba lagi.', type: 'error' }),
