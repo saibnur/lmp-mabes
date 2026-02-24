@@ -16,6 +16,7 @@ import Toast from '@/app/components/Toast';
 import Cropper from 'react-easy-crop';
 import getCroppedImg from '@/lib/cropImage';
 import KtaCard from './KtaCard';
+import { useRegionCache } from '@/hooks/useRegionCache';
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Types
@@ -103,13 +104,25 @@ export default function DaftarProfilPage() {
     const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
     const [showCropper, setShowCropper] = useState(false);
 
-    // Regions (domisili)
-    const [regions, setRegions] = useState<{
-        provinces: Region[]; regencies: Region[]; districts: Region[]; villages: Region[];
-    }>({ provinces: [], regencies: [], districts: [], villages: [] });
+    // Regions (domisili) — fetched via useRegionCache (sessionStorage-backed)
     const [sel, setSel] = useState({ provinceId: '', regencyId: '', districtId: '', villageId: '' });
     const [selNames, setSelNames] = useState({ provinceName: '', regencyName: '', districtName: '', villageName: '' });
-    const [loadingRegion, setLoadingRegion] = useState<string | null>(null);
+
+    const { data: provinces, loading: loadingProvinces, error: errorProvinces } =
+        useRegionCache('provinces');
+    const { data: regencies, loading: loadingRegencies, error: errorRegencies } =
+        useRegionCache('regencies', sel.provinceId, !!sel.provinceId);
+    const { data: districts, loading: loadingDistricts, error: errorDistricts } =
+        useRegionCache('districts', sel.regencyId, !!sel.regencyId);
+    const { data: villages, loading: loadingVillages, error: errorVillages } =
+        useRegionCache('villages', sel.districtId, !!sel.districtId);
+
+    // Computed: is any region level currently loading?
+    const loadingRegion: string | null =
+        loadingProvinces ? 'provinces' :
+            loadingRegencies ? 'regencies' :
+                loadingDistricts ? 'districts' :
+                    loadingVillages ? 'villages' : null;
 
     // Org level (Step 3)
     const [orgLevel, setOrgLevel] = useState<OrgLevel>('');
@@ -190,50 +203,14 @@ export default function DaftarProfilPage() {
     }, [sel, isEditMode]);
 
     // ──────────────────────────────────────────────────────────────────────────
-    // Fetch provinces
+    // Surface region fetch errors as toast messages
     // ──────────────────────────────────────────────────────────────────────────
     useEffect(() => {
-        memberApi.getRegions('provinces').then(({ data }) => {
-            if (data.success) setRegions(prev => ({ ...prev, provinces: data.data }));
-        });
-    }, []);
-
-    // Cascading fetches
-    useEffect(() => {
-        if (!sel.provinceId) {
-            setRegions(prev => ({ ...prev, regencies: [], districts: [], villages: [] }));
-            return;
+        const firstError = errorProvinces || errorRegencies || errorDistricts || errorVillages;
+        if (firstError) {
+            setToast({ show: true, message: firstError, type: 'error' });
         }
-        setLoadingRegion('regencies');
-        memberApi.getRegions('regencies', sel.provinceId).then(({ data }) => {
-            if (data.success) setRegions(prev => ({ ...prev, regencies: data.data, districts: [], villages: [] }));
-            setLoadingRegion(null);
-        });
-    }, [sel.provinceId]);
-
-    useEffect(() => {
-        if (!sel.regencyId) {
-            setRegions(prev => ({ ...prev, districts: [], villages: [] }));
-            return;
-        }
-        setLoadingRegion('districts');
-        memberApi.getRegions('districts', sel.regencyId).then(({ data }) => {
-            if (data.success) setRegions(prev => ({ ...prev, districts: data.data, villages: [] }));
-            setLoadingRegion(null);
-        });
-    }, [sel.regencyId]);
-
-    useEffect(() => {
-        if (!sel.districtId) {
-            setRegions(prev => ({ ...prev, villages: [] }));
-            return;
-        }
-        setLoadingRegion('villages');
-        memberApi.getRegions('villages', sel.districtId).then(({ data }) => {
-            if (data.success) setRegions(prev => ({ ...prev, villages: data.data }));
-            setLoadingRegion(null);
-        });
-    }, [sel.districtId]);
+    }, [errorProvinces, errorRegencies, errorDistricts, errorVillages]);
 
     // ──────────────────────────────────────────────────────────────────────────
     // NIK debounced check
@@ -300,7 +277,8 @@ export default function DaftarProfilPage() {
     // Validation & navigation
     // ──────────────────────────────────────────────────────────────────────────
     const canProceedStep1 = form.displayName.trim().length > 2 && form.nik.length === 16 && nikStatus === 'ok';
-    const canProceedStep2 = sel.villageId !== '';
+    // Block step 2 advance if region data is still loading OR village not selected
+    const canProceedStep2 = sel.villageId !== '' && loadingRegion === null;
     const canProceedStep3 = orgLevel !== '';
 
     const STEP_ORDER: Step[] = ['data-diri', 'alamat', 'kepengurusan', 'preview'];
@@ -411,7 +389,7 @@ export default function DaftarProfilPage() {
     const stepDisabledNext =
         loading ||
         (step === 'data-diri' && !canProceedStep1) ||
-        (step === 'alamat' && !canProceedStep2) ||
+        (step === 'alamat' && (!canProceedStep2 || loadingRegion !== null)) ||
         (step === 'kepengurusan' && !canProceedStep3);
 
     if (!authReady) {
@@ -636,88 +614,95 @@ export default function DaftarProfilPage() {
                                 <div className="space-y-4">
                                     {/* Province */}
                                     <div>
-                                        <label className="mb-1.5 block text-xs font-black uppercase tracking-widest text-slate-500">Provinsi <span className="text-red-600">*</span></label>
+                                        <label className="mb-1.5 flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-500">
+                                            Provinsi <span className="text-red-600">*</span>
+                                            {loadingProvinces && <Loader2 className="h-3 w-3 animate-spin text-slate-400" />}
+                                        </label>
                                         <select
+                                            disabled={loadingProvinces}
                                             value={sel.provinceId}
                                             onChange={e => {
                                                 const id = e.target.value;
-                                                const name = regions.provinces.find(p => p.id === id)?.name || '';
+                                                const name = provinces.find(p => p.id === id)?.name || '';
                                                 setSel({ provinceId: id, regencyId: '', districtId: '', villageId: '' });
                                                 setSelNames({ provinceName: name, regencyName: '', districtName: '', villageName: '' });
                                             }}
-                                            className="w-full appearance-none rounded-2xl border-2 border-slate-200 bg-white px-5 py-4 font-bold text-slate-900 outline-none transition focus:border-red-600"
+                                            className="w-full appearance-none rounded-2xl border-2 border-slate-200 bg-white px-5 py-4 font-bold text-slate-900 outline-none transition focus:border-red-600 disabled:bg-slate-50 disabled:text-slate-400"
                                         >
-                                            <option value="">Pilih Provinsi</option>
-                                            {regions.provinces.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                                            <option value="">{loadingProvinces ? 'Memuat...' : 'Pilih Provinsi'}</option>
+                                            {provinces.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
                                         </select>
                                     </div>
 
                                     {/* Regency */}
                                     <div>
-                                        <label className="mb-1.5 block text-xs font-black uppercase tracking-widest text-slate-500">
-                                            Kabupaten / Kota{' '}
+                                        <label className="mb-1.5 flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-500">
+                                            Kabupaten / Kota
                                             {!sel.provinceId && <span className="normal-case font-normal text-slate-300">— pilih provinsi dulu</span>}
-                                            {sel.provinceId && <span className="text-red-600">*</span>}
+                                            {sel.provinceId && !loadingRegencies && <span className="text-red-600">*</span>}
+                                            {loadingRegencies && <Loader2 className="h-3 w-3 animate-spin text-slate-400" />}
                                         </label>
                                         <select
-                                            disabled={!sel.provinceId || loadingRegion === 'regencies'}
+                                            disabled={!sel.provinceId || loadingRegencies}
                                             value={sel.regencyId}
                                             onChange={e => {
                                                 const id = e.target.value;
-                                                const name = regions.regencies.find(r => r.id === id)?.name || '';
+                                                const name = regencies.find(r => r.id === id)?.name || '';
                                                 setSel(prev => ({ ...prev, regencyId: id, districtId: '', villageId: '' }));
                                                 setSelNames(prev => ({ ...prev, regencyName: name, districtName: '', villageName: '' }));
                                             }}
                                             className="w-full appearance-none rounded-2xl border-2 border-slate-200 bg-white px-5 py-4 font-bold text-slate-900 outline-none transition focus:border-red-600 disabled:bg-slate-50 disabled:text-slate-300"
                                         >
-                                            <option value="">{loadingRegion === 'regencies' ? 'Memuat...' : 'Pilih Kabupaten/Kota'}</option>
-                                            {regions.regencies.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                                            <option value="">{loadingRegencies ? 'Memuat...' : 'Pilih Kabupaten/Kota'}</option>
+                                            {regencies.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
                                         </select>
                                     </div>
 
                                     {/* District */}
                                     <div>
-                                        <label className="mb-1.5 block text-xs font-black uppercase tracking-widest text-slate-500">
-                                            Kecamatan{' '}
+                                        <label className="mb-1.5 flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-500">
+                                            Kecamatan
                                             {!sel.regencyId && <span className="normal-case font-normal text-slate-300">— pilih kab/kota dulu</span>}
-                                            {sel.regencyId && <span className="text-red-600">*</span>}
+                                            {sel.regencyId && !loadingDistricts && <span className="text-red-600">*</span>}
+                                            {loadingDistricts && <Loader2 className="h-3 w-3 animate-spin text-slate-400" />}
                                         </label>
                                         <select
-                                            disabled={!sel.regencyId || loadingRegion === 'districts'}
+                                            disabled={!sel.regencyId || loadingDistricts}
                                             value={sel.districtId}
                                             onChange={e => {
                                                 const id = e.target.value;
-                                                const name = regions.districts.find(r => r.id === id)?.name || '';
+                                                const name = districts.find(r => r.id === id)?.name || '';
                                                 setSel(prev => ({ ...prev, districtId: id, villageId: '' }));
                                                 setSelNames(prev => ({ ...prev, districtName: name, villageName: '' }));
                                             }}
                                             className="w-full appearance-none rounded-2xl border-2 border-slate-200 bg-white px-5 py-4 font-bold text-slate-900 outline-none transition focus:border-red-600 disabled:bg-slate-50 disabled:text-slate-300"
                                         >
-                                            <option value="">{loadingRegion === 'districts' ? 'Memuat...' : 'Pilih Kecamatan'}</option>
-                                            {regions.districts.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                                            <option value="">{loadingDistricts ? 'Memuat...' : 'Pilih Kecamatan'}</option>
+                                            {districts.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
                                         </select>
                                     </div>
 
                                     {/* Village */}
                                     <div>
-                                        <label className="mb-1.5 block text-xs font-black uppercase tracking-widest text-slate-500">
-                                            Desa / Kelurahan{' '}
+                                        <label className="mb-1.5 flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-500">
+                                            Desa / Kelurahan
                                             {!sel.districtId && <span className="normal-case font-normal text-slate-300">— pilih kecamatan dulu</span>}
-                                            {sel.districtId && <span className="text-red-600">*</span>}
+                                            {sel.districtId && !loadingVillages && <span className="text-red-600">*</span>}
+                                            {loadingVillages && <Loader2 className="h-3 w-3 animate-spin text-slate-400" />}
                                         </label>
                                         <select
-                                            disabled={!sel.districtId || loadingRegion === 'villages'}
+                                            disabled={!sel.districtId || loadingVillages}
                                             value={sel.villageId}
                                             onChange={e => {
                                                 const id = e.target.value;
-                                                const name = regions.villages.find(r => r.id === id)?.name || '';
+                                                const name = villages.find(r => r.id === id)?.name || '';
                                                 setSel(prev => ({ ...prev, villageId: id }));
                                                 setSelNames(prev => ({ ...prev, villageName: name }));
                                             }}
                                             className="w-full appearance-none rounded-2xl border-2 border-slate-200 bg-white px-5 py-4 font-bold text-slate-900 outline-none transition focus:border-red-600 disabled:bg-slate-50 disabled:text-slate-300"
                                         >
-                                            <option value="">{loadingRegion === 'villages' ? 'Memuat...' : 'Pilih Desa/Kelurahan'}</option>
-                                            {regions.villages.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                                            <option value="">{loadingVillages ? 'Memuat...' : 'Pilih Desa/Kelurahan'}</option>
+                                            {villages.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
                                         </select>
                                     </div>
 

@@ -109,25 +109,87 @@ exports.updateProfile = async (req, res) => {
 
         const userData = userDoc.data();
 
-        const updatePayload = {
-            displayName: fullName.trim(),
-            nik,
-            email: email || userData.email || '',
-            phoneNumber: phoneNumber || userData.phoneNumber || '',
-            photoURL: photoURL || userData.photoURL || '',
-            ktpURL: ktpURL || userData.ktpURL || '',
-            // Preserve existing no_kta (only payment webhook can set this)
-            organization: {
-                ...organization,
-                updatedAt: new Date().toISOString()
-            },
-            profileComplete: true,
-            updatedAt: getFirebaseAdmin().firestore.FieldValue.serverTimestamp()
-        };
+        // RUN ATOMIC TRANSACTION FOR KTA GENERATION & PROFILE UPDATE
+        let generatedKta = userData.no_kta || null;
 
-        await userRef.update(updatePayload);
+        await db.runTransaction(async (transaction) => {
+            // Re-read user doc inside transaction to ensure atomic consistency
+            const txUserDoc = await transaction.get(userRef);
+            if (!txUserDoc.exists) {
+                throw new Error('User tidak ditemukan saat update profil');
+            }
 
-        // Write audit log
+            const txUserData = txUserDoc.data();
+
+            // ONLY generate KTA if not already issued
+            if (!txUserData.no_kta) {
+                const village_id = organization.village_id;
+
+                if (!village_id || village_id.length !== 10) {
+                    throw new Error(`Data wilayah tidak valid (village_id: ${village_id})`);
+                }
+
+                // Query for the latest KTA sequence in the same village OUTSIDE the transaction for scalability
+                // The transaction simply prevents concurrent writes to this user doc but does not lock the entire collection
+                // Since this uses sequential incremental numbering, we'll fetch the highest sequence.
+                const villageUsersSnap = await db.collection('users')
+                    .where('organization.village_id', '==', village_id)
+                    .where('no_kta', '!=', null)
+                    .orderBy('no_kta', 'desc')
+                    .limit(1)
+                    .get();
+
+                let sequence = 1;
+                if (!villageUsersSnap.empty) {
+                    const lastKta = villageUsersSnap.docs[0].data().no_kta;
+                    if (lastKta && lastKta.includes('.')) {
+                        const parts = lastKta.split('.');
+                        const lastSeq = parseInt(parts[parts.length - 1], 10);
+                        if (!isNaN(lastSeq)) {
+                            sequence = lastSeq + 1;
+                        }
+                    }
+                }
+
+                const paddedSeq = sequence.toString().padStart(4, '0');
+                const v = village_id;
+                const formattedVillage = `${v.slice(0, 2)}.${v.slice(2, 4)}.${v.slice(4, 6)}.${v.slice(6)}`;
+                generatedKta = `${formattedVillage}.${paddedSeq}`;
+
+                // Write audit log inside transaction isn't currently supported by Firestore node SDK unless we pass the ref.
+                // We'll write it outside the transaction below, which is acceptable since it's just an audit record.
+            }
+
+            const updatePayload = {
+                displayName: fullName.trim(),
+                nik,
+                email: email || txUserData.email || '',
+                phoneNumber: phoneNumber || txUserData.phoneNumber || '',
+                photoURL: photoURL || txUserData.photoURL || '',
+                ktpURL: ktpURL || txUserData.ktpURL || '',
+                no_kta: generatedKta, // newly generated or existing
+                organization: {
+                    ...organization,
+                    updatedAt: new Date().toISOString()
+                },
+                profileComplete: true,
+                updatedAt: getFirebaseAdmin().firestore.FieldValue.serverTimestamp()
+            };
+
+            transaction.update(userRef, updatePayload);
+        });
+
+        // Write audit logs outside the transaction
+        if (!userData.no_kta && generatedKta) {
+            await db.collection('audit_logs').add({
+                event: 'KTA_GENERATED',
+                uid: req.uid,
+                context: 'early_step_2_registration',
+                no_kta: generatedKta,
+                timestamp: getFirebaseAdmin().firestore.FieldValue.serverTimestamp()
+            });
+        }
+
         await db.collection('audit_logs').add({
             event: 'PROFILE_UPDATED',
             uid: req.uid,
@@ -136,12 +198,18 @@ exports.updateProfile = async (req, res) => {
 
         res.status(200).json({
             success: true,
-            message: 'Profil berhasil disimpan. Lanjutkan ke pembayaran untuk menerima KTA.',
-            data: { ...userData, ...updatePayload, uid: req.uid }
+            message: 'Profil berhasil disimpan dan nomor KTA telah dibuat. Lanjutkan ke pembayaran untuk aktivasi layar KTA.',
+            data: {
+                ...userData,
+                displayName: fullName.trim(),
+                nik,
+                no_kta: generatedKta,
+                uid: req.uid
+            }
         });
     } catch (error) {
-        console.error('[MemberController] Update profile error:', error);
-        res.status(500).json({ success: false, message: error.message || 'Gagal memperbarui profil' });
+        console.error('[MemberController] Update profile & generate KTA error:', error);
+        res.status(500).json({ success: false, message: error.message || 'Gagal memperbarui profil dan KTA' });
     }
 };
 
