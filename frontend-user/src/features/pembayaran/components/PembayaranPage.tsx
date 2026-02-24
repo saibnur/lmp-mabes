@@ -373,9 +373,15 @@ export default function PembayaranPage() {
                 </p>
 
                 {/* Price */}
-                <div className="flex items-baseline gap-2 mb-6 bg-slate-50 rounded-2xl px-5 py-4 border border-slate-100">
-                  <span className="text-4xl font-extrabold text-slate-900">Rp 25.000</span>
-                  <span className="text-sm text-slate-400 font-semibold">/ 2 Tahun</span>
+                <div className="flex flex-col gap-1 mb-6 bg-slate-50 rounded-2xl px-5 py-4 border border-slate-100">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-slate-400 line-through">Rp 50.000</span>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-600">Diskon 50%</span>
+                  </div>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-4xl font-extrabold text-slate-900">Rp 25.000</span>
+                    <span className="text-sm text-slate-400 font-semibold">/ 2 Tahun</span>
+                  </div>
                 </div>
 
                 {/* Checklist */}
