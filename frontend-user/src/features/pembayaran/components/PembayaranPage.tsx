@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import {
   CheckCircle2, X, ArrowRight, ShieldCheck, Scale, Network,
   GraduationCap, Shirt, TrendingUp, LayoutGrid, Loader2,
@@ -36,8 +36,6 @@ export default function PembayaranPage() {
   const [membershipStatus, setMembershipStatus] = useState<string | null>(null);
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' as 'success' | 'error' });
 
-  const searchParams = useSearchParams();
-
   useEffect(() => {
     const auth = getFirebaseAuth();
     const db = getFirestoreDb();
@@ -71,25 +69,6 @@ export default function PembayaranPage() {
     return () => { unsubAuth(); unsubSnap?.(); };
   }, [router]);
 
-  // Handle Midtrans Redirect Query Params
-  useEffect(() => {
-    const transactionStatus = searchParams.get('transaction_status');
-    const orderId = searchParams.get('order_id');
-
-    if (transactionStatus && orderId) {
-      if (transactionStatus === 'settlement' || transactionStatus === 'capture') {
-        setToast({ show: true, message: 'Pembayaran diterima! Sedang mengaktifkan keanggotaan...', type: 'success' });
-      } else if (transactionStatus === 'pending') {
-        setToast({ show: true, message: 'Menunggu konfirmasi pembayaran Anda.', type: 'success' });
-      } else {
-        setToast({ show: true, message: `Status pembayaran: ${transactionStatus}`, type: 'error' });
-      }
-
-      // Clean up URL to avoid re-triggering this effect
-      router.replace('/dashboard/pembayaran');
-    }
-  }, [searchParams, router]);
-
   const updateStatusManual = async () => {
     try {
       const auth = getFirebaseAuth();
@@ -121,12 +100,12 @@ export default function PembayaranPage() {
       const { data } = await paymentApi.createTransaction(idToken);
       if (data.success && data.token) {
         window.snap.pay(data.token, {
-          onSuccess: async (result: any) => {
+          onSuccess: async () => {
             if (process.env.NODE_ENV === 'development') await updateStatusManual();
             else setToast({ show: true, message: 'Pembayaran berhasil! Mohon tunggu sinkronisasi...', type: 'success' });
           },
-          onPending: (result: any) => setToast({ show: true, message: 'Menunggu konfirmasi pembayaran...', type: 'success' }),
-          onError: (result: any) => setToast({ show: true, message: 'Pembayaran gagal. Coba lagi.', type: 'error' }),
+          onPending: () => setToast({ show: true, message: 'Menunggu konfirmasi pembayaran...', type: 'success' }),
+          onError: () => setToast({ show: true, message: 'Pembayaran gagal. Coba lagi.', type: 'error' }),
           onClose: () => setToast({ show: true, message: 'Pembayaran dibatalkan.', type: 'error' }),
         });
       }
@@ -147,94 +126,12 @@ export default function PembayaranPage() {
     );
   }
 
-  /* ── Riwayat (sudah aktif) ── */
+  // If status is active, show redirecting state instead of history layout
   if (membershipStatus === 'active') {
     return (
-      <div className="min-h-screen bg-white pb-24">
-        <div className="max-w-4xl mx-auto px-4 md:px-8 pt-8 md:pt-12">
-          {/* Header */}
-          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-            <div className="inline-flex items-center gap-2 bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-full text-xs font-bold mb-3">
-              <BadgeCheck className="w-4 h-4" /> Keanggotaan Aktif
-            </div>
-            <h1 className="text-2xl md:text-3xl font-bold text-slate-900">Riwayat Pembayaran</h1>
-            <p className="text-slate-500 text-sm md:text-base mt-1">Daftar transaksi dan kontribusi iuran keanggotaan Anda.</p>
-          </motion.div>
-
-          {/* Table Card */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden"
-          >
-            {/* Mobile card view */}
-            <div className="md:hidden divide-y divide-slate-100">
-              <div className="flex items-center gap-3 p-4">
-                <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 shrink-0">
-                  <Calendar className="w-5 h-5" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-slate-900">12 Feb 2026 · 14:30 WIB</p>
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    <CreditCard className="w-3.5 h-3.5 text-slate-400" />
-                    <p className="font-mono text-xs text-slate-500">INV-LMP-260212</p>
-                  </div>
-                </div>
-                <div className="text-right shrink-0">
-                  <p className="font-bold text-slate-900 text-sm">Rp 25.000</p>
-                  <span className="inline-flex items-center gap-1 mt-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-600 border border-emerald-200">
-                    <CheckCircle2 className="w-3 h-3" /> Lunas
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Desktop table */}
-            <div className="hidden md:block overflow-x-auto">
-              <table className="w-full text-left">
-                <thead className="bg-slate-50 border-b border-slate-200">
-                  <tr className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                    <th className="py-3 px-5">Tanggal</th>
-                    <th className="py-3 px-5">Invoice / Referensi</th>
-                    <th className="py-3 px-5">Nominal</th>
-                    <th className="py-3 px-5 text-center">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  <tr className="hover:bg-slate-50 transition group">
-                    <td className="py-4 px-5">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500 group-hover:bg-slate-900 group-hover:text-white transition shrink-0">
-                          <Calendar className="w-4 h-4" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold text-slate-900">12 Feb 2026</p>
-                          <p className="text-xs text-slate-400">14:30 WIB</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-4 px-5">
-                      <div className="flex items-center gap-2">
-                        <CreditCard className="w-4 h-4 text-slate-400 shrink-0" />
-                        <span className="font-mono text-sm font-semibold text-slate-700">INV-LMP-260212</span>
-                      </div>
-                    </td>
-                    <td className="py-4 px-5">
-                      <span className="text-sm font-bold text-slate-900">Rp 25.000</span>
-                    </td>
-                    <td className="py-4 px-5 text-center">
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-[11px] font-bold text-emerald-600 border border-emerald-200">
-                        <CheckCircle2 className="w-3 h-3" /> Lunas
-                      </span>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </motion.div>
-        </div>
-
+      <div className="flex flex-col min-h-[60vh] items-center justify-center gap-4">
+        <Loader2 className="w-10 h-10 animate-spin text-red-600" />
+        <p className="text-slate-600 font-medium">Sinkronisasi selesai. Mengalihkan...</p>
         <Toast message={toast.message} visible={toast.show} onClose={() => setToast(t => ({ ...t, show: false }))} />
       </div>
     );
@@ -373,15 +270,9 @@ export default function PembayaranPage() {
                 </p>
 
                 {/* Price */}
-                <div className="flex flex-col gap-1 mb-6 bg-slate-50 rounded-2xl px-5 py-4 border border-slate-100">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-slate-400 line-through">Rp 50.000</span>
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-600">Diskon 50%</span>
-                  </div>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-4xl font-extrabold text-slate-900">Rp 25.000</span>
-                    <span className="text-sm text-slate-400 font-semibold">/ 2 Tahun</span>
-                  </div>
+                <div className="flex items-baseline gap-2 mb-6 bg-slate-50 rounded-2xl px-5 py-4 border border-slate-100">
+                  <span className="text-4xl font-extrabold text-slate-900">Rp 25.000</span>
+                  <span className="text-sm text-slate-400 font-semibold">/ 2 Tahun</span>
                 </div>
 
                 {/* Checklist */}
