@@ -94,3 +94,19 @@ export interface CloudinarySignature {
     api_key: string;
     upload_preset: string;
 }
+
+/** A news article stored in Firestore 'berita' collection */
+export interface BeritaArticle {
+    id?: string;
+    title: string;
+    content: string;        // HTML dari Tiptap editor
+    headerImage: string;    // Cloudinary URL
+    excerpt: string;        // Auto-generated plain text snippet
+    authorId: string;
+    authorName: string;
+    authorRole: 'member' | 'admin';
+    category: string;
+    status: 'draft' | 'published';
+    createdAt: any;         // Firestore Timestamp
+    updatedAt: any;
+}

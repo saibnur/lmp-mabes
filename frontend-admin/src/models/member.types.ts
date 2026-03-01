@@ -1,13 +1,13 @@
-/**
- * TypeScript interfaces for the LMP Mabes data model.
- * Matches the Firestore `users` collection schema.
- */
-
 export interface Organization {
+    level?: 'pusat' | 'daerah' | 'cabang' | 'anak-cabang' | 'ranting' | '';
     province_id?: string;
     province_name?: string;
+    // Lama (tidak ada di data):
     city_id?: string;
     city_name?: string;
+    // Tambah field yang sebenarnya ada:
+    regency_id?: string;
+    regency_name?: string;
     district_id?: string;
     district_name?: string;
     village_id?: string;
@@ -16,7 +16,7 @@ export interface Organization {
 }
 
 export interface Kepengurusan {
-    level: 'provinsi' | 'kab_kota' | 'kecamatan' | 'kelurahan';
+    level: 'pusat' | 'provinsi' | 'kab_kota' | 'kecamatan' | 'kelurahan';
     region_id: string;
     region_name: string;
     jabatan?: string;
@@ -51,34 +51,45 @@ export interface Region {
     name: string;
 }
 
+/** Satu titik data untuk grafik — dikembalikan backend sudah diagregasi */
+export interface RegistrationDataPoint {
+    label: string;   // sumbu X: nama hari / rentang minggu / bulan / tahun
+    active: number;
+    pending: number;
+}
+
+/** Response dari GET /api/admin/stats */
 export interface DashboardStats {
     totalMembers: number;
     activeMembers: number;
     pendingMembers: number;
     expiredMembers: number;
     totalAdmins: number;
+    /** Sudah diagregasi backend sesuai `range` yang dikirim */
     registrationData: RegistrationDataPoint[];
 }
 
-export interface RegistrationDataPoint {
-    label: string;
-    active: number;
-    pending: number;
-}
+/**
+ * daily   → 7 hari terakhir      (sumbu X: Sen, Sel, ...)
+ * weekly  → 8 minggu terakhir    (sumbu X: 01-07 Jan, ...)
+ * monthly → 12 bulan terakhir    (sumbu X: Jan, Feb, ...)
+ * yearly  → 5 tahun terakhir     (sumbu X: 2022, 2023, ...)
+ */
+export type TimeRange = 'daily' | 'weekly' | 'monthly' | 'yearly';
 
-export type TimeRange = 'hourly' | 'weekly' | 'monthly' | 'yearly';
-
-export interface NewsItem {
-    id: string;
+export interface BeritaArticle {
+    id?: string;
     title: string;
     content: string;
-    category: 'berita' | 'acara' | 'kegiatan';
-    imageURL?: string;
-    author: string;
-    authorUid: string;
-    published: boolean;
-    createdAt?: any;
-    updatedAt?: any;
+    headerImage: string;
+    excerpt: string;
+    authorId: string;
+    authorName: string;
+    authorRole: 'member' | 'admin';
+    category: string;
+    status: 'draft' | 'published';
+    createdAt: any;
+    updatedAt: any;
 }
 
 export interface NikCheckResult {

@@ -1,14 +1,13 @@
 'use client';
 
-import { Pencil, Trash2, Plus, Eye, EyeOff } from 'lucide-react';
-import type { NewsItem } from '@/models/member.types';
+import { Pencil, Trash2 } from 'lucide-react';
+import type { BeritaArticle } from '@/models/member.types';
+import Link from 'next/link';
 
 interface NewsTableProps {
-    news: NewsItem[];
+    news: BeritaArticle[];
     isLoading: boolean;
-    onEdit: (item: NewsItem) => void;
     onDelete: (id: string) => void;
-    onCreate: () => void;
     isDeleting: boolean;
 }
 
@@ -16,9 +15,11 @@ const CATEGORY_MAP: Record<string, { label: string; bg: string; text: string }> 
     berita: { label: 'Berita', bg: 'bg-brand/10', text: 'text-brand-primary' },
     acara: { label: 'Acara', bg: 'bg-green-100', text: 'text-green-700' },
     kegiatan: { label: 'Kegiatan', bg: 'bg-amber-100', text: 'text-amber-700' },
+    sosial: { label: 'Sosial', bg: 'bg-sky-100', text: 'text-sky-700' },
+    organisasi: { label: 'Organisasi', bg: 'bg-purple-100', text: 'text-purple-700' },
 };
 
-export default function NewsTable({ news, isLoading, onEdit, onDelete, onCreate, isDeleting }: NewsTableProps) {
+export default function NewsTable({ news, isLoading, onDelete, isDeleting }: NewsTableProps) {
     if (isLoading) {
         return (
             <div className="glass-card flex h-64 items-center justify-center bg-surface/50">
@@ -29,79 +30,94 @@ export default function NewsTable({ news, isLoading, onEdit, onDelete, onCreate,
 
     return (
         <div className="glass-card overflow-hidden shadow-sm border border-border-custom bg-surface">
-            {/* Header */}
-            <div className="flex items-center justify-between border-b border-border-custom bg-surface-hover/30 px-6 py-4">
-                <p className="text-xs font-bold text-text-muted uppercase tracking-wider">{news.length} Artikel Berita</p>
-                <button
-                    onClick={onCreate}
-                    className="flex items-center gap-2 rounded-xl bg-brand-primary px-5 py-2.5 text-sm font-bold text-white shadow-md shadow-brand-primary/20 transition hover:bg-brand-primary-light active:scale-95"
-                >
-                    <Plus className="h-4 w-4" />
-                    Tambah Berita
-                </button>
+            {/* Header — hanya jumlah artikel, tanpa tombol tambah */}
+            <div className="border-b border-border-custom bg-surface-hover/30 px-4 sm:px-6 py-4">
+                <p className="text-xs font-bold text-text-muted uppercase tracking-wider">
+                    {news.length} Artikel
+                </p>
             </div>
 
             {news.length === 0 ? (
-                <div className="py-24 text-center text-text-muted">
-                    <p className="text-sm font-medium">Belum ada berita. Klik "Tambah" untuk membuat yang baru.</p>
+                <div className="py-24 text-center text-text-muted space-y-2">
+                    <p className="text-2xl">📰</p>
+                    <p className="text-sm font-medium">Belum ada artikel. Tambah dari tombol di atas.</p>
                 </div>
             ) : (
                 <div className="divide-y divide-border-custom/50">
                     {news.map((item) => {
-                        const cat = CATEGORY_MAP[item.category] || CATEGORY_MAP.berita;
+                        const cat =
+                            CATEGORY_MAP[item.category?.toLowerCase()] ?? CATEGORY_MAP.berita;
                         return (
                             <div
                                 key={item.id}
-                                className="flex items-center gap-5 px-6 py-4 transition-colors hover:bg-surface-hover/40"
+                                className="flex items-center gap-3 px-4 sm:px-6 py-4
+                                           transition-colors hover:bg-surface-hover/40"
                             >
                                 {/* Thumbnail */}
-                                {item.imageURL ? (
+                                {item.headerImage ? (
                                     <img
-                                        src={item.imageURL}
+                                        src={item.headerImage}
                                         alt=""
-                                        className="h-16 w-16 flex-shrink-0 rounded-xl object-cover border border-border-custom"
+                                        className="h-14 w-14 sm:h-16 sm:w-16 shrink-0 rounded-xl object-cover
+                                                   border border-border-custom"
                                     />
                                 ) : (
-                                    <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-xl bg-surface-hover text-text-muted border border-border-custom">
+                                    <div className="flex h-14 w-14 sm:h-16 sm:w-16 shrink-0 items-center
+                                                    justify-center rounded-xl bg-surface-hover
+                                                    border border-border-custom text-xl">
                                         📰
                                     </div>
                                 )}
 
                                 {/* Content */}
                                 <div className="min-w-0 flex-1">
-                                    <div className="flex items-center gap-2">
-                                        <h4 className="truncate text-sm font-bold text-foreground">{item.title}</h4>
-                                        {!item.published && (
-                                            <span className="inline-flex items-center gap-1 rounded bg-lmp-navy/5 px-1.5 py-0.5 text-[9px] font-bold uppercase text-text-muted">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                        <h4 className="truncate text-sm sm:text-base font-bold text-foreground">
+                                            {item.title}
+                                        </h4>
+                                        {item.status !== 'published' && (
+                                            <span className="shrink-0 rounded bg-lmp-navy/5 px-1.5 py-0.5
+                                                             text-[9px] font-bold uppercase text-text-muted">
                                                 DRAFT
                                             </span>
                                         )}
                                     </div>
-                                    <p className="mt-1 line-clamp-1 text-xs text-text-muted leading-relaxed">{item.content}</p>
-                                    <div className="mt-2 flex items-center gap-3">
-                                        <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${cat.bg} ${cat.text}`}>
+                                    <p className="mt-0.5 line-clamp-1 text-xs text-text-muted leading-relaxed">
+                                        {item.excerpt}
+                                    </p>
+                                    <div className="mt-1.5 flex items-center gap-2 flex-wrap">
+                                        <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold
+                                                          uppercase tracking-wider ${cat.bg} ${cat.text}`}>
                                             {cat.label}
                                         </span>
-                                        <span className="text-[10px] font-medium text-text-muted/60">ditulis oleh {item.author || 'Admin'}</span>
+                                        <span className="text-[10px] text-text-muted/60">
+                                            {item.authorName}
+                                        </span>
                                     </div>
                                 </div>
 
                                 {/* Actions */}
-                                <div className="flex flex-shrink-0 items-center gap-1">
-                                    <button
-                                        onClick={() => onEdit(item)}
-                                        className="rounded-xl p-2.5 text-text-muted transition-all hover:bg-brand-primary/10 hover:text-brand-primary"
+                                <div className="flex shrink-0 items-center gap-1">
+                                    <Link
+                                        href={`/dashboard/news/edit/${item.id}`}
+                                        className="rounded-xl p-2 text-text-muted transition-all
+                                                   hover:bg-brand-primary/10 hover:text-brand-primary"
+                                        title="Edit"
                                     >
-                                        <Pencil className="h-4.5 w-4.5" />
-                                    </button>
+                                        <Pencil className="h-4 w-4" />
+                                    </Link>
                                     <button
                                         onClick={() => {
-                                            if (confirm('Hapus berita ini?')) onDelete(item.id);
+                                            if (confirm('Hapus berita ini secara permanen?'))
+                                                onDelete(item.id!);
                                         }}
                                         disabled={isDeleting}
-                                        className="rounded-xl p-2.5 text-text-muted transition-all hover:bg-danger/10 hover:text-danger disabled:opacity-30"
+                                        className="rounded-xl p-2 text-text-muted transition-all
+                                                   hover:bg-red-100 hover:text-red-600
+                                                   disabled:opacity-30"
+                                        title="Hapus"
                                     >
-                                        <Trash2 className="h-4.5 w-4.5" />
+                                        <Trash2 className="h-4 w-4" />
                                     </button>
                                 </div>
                             </div>

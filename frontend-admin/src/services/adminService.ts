@@ -3,8 +3,8 @@ import type {
     Member,
     DashboardStats,
     TimeRange,
-    NewsItem,
     NikCheckResult,
+    BeritaArticle,
 } from '@/models/member.types';
 
 function authHeaders(idToken: string) {
@@ -19,7 +19,7 @@ export const adminService = {
         params?: {
             search?: string;
             province_id?: string;
-            city_id?: string;
+            regency_id?: string;
             district_id?: string;
             village_id?: string;
         }
@@ -34,7 +34,7 @@ export const adminService = {
     updateMemberRole: async (
         idToken: string,
         uid: string,
-        payload: { role: string; kepengurusan?: any }
+        payload: { role: string; kepengurusan?: any; organization?: any }
     ) => {
         const res = await apiClient.put(
             `/api/admin/members/${uid}/role`,
@@ -81,31 +81,9 @@ export const adminService = {
     },
 
     /* ─── News CMS ─── */
-    getNews: async (idToken: string): Promise<NewsItem[]> => {
+    getNews: async (idToken: string): Promise<BeritaArticle[]> => {
         const res = await apiClient.get('/api/admin/news', authHeaders(idToken));
         return res.data.data;
-    },
-
-    createNews: async (
-        idToken: string,
-        data: Omit<NewsItem, 'id' | 'createdAt' | 'updatedAt' | 'authorUid'>
-    ) => {
-        const res = await apiClient.post('/api/admin/news', data, authHeaders(idToken));
-        return res.data;
-    },
-
-    updateNews: async (
-        idToken: string,
-        id: string,
-        data: Partial<NewsItem>
-    ) => {
-        const res = await apiClient.put(`/api/admin/news/${id}`, data, authHeaders(idToken));
-        return res.data;
-    },
-
-    deleteNews: async (idToken: string, id: string) => {
-        const res = await apiClient.delete(`/api/admin/news/${id}`, authHeaders(idToken));
-        return res.data;
     },
 
     /* ─── Media — signed upload ─── */

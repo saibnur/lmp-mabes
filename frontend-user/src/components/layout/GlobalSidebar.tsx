@@ -16,7 +16,8 @@ import {
     User,
     BadgeCheck,
     Building,
-    Image as ImageIcon
+    Image as ImageIcon,
+    PenSquare
 } from 'lucide-react';
 import { useUserProfile } from '@/store/UserProfileProvider';
 
@@ -71,7 +72,7 @@ export default function GlobalSidebar({ isOpen, onClose }: GlobalSidebarProps) {
             group: 'Data Keanggotaan',
             items: [
                 { label: 'Status Anggota', href: '/dashboard/status-keanggotaan', icon: ShieldCheck, activeCheck: '/dashboard/status-keanggotaan', badge: (profile?.isPaid === true || profile?.membershipStatus === 'active') ? null : '!' },
-                { label: 'Update Data Pribadi', href: '/daftar/profil', icon: UserCircle },
+                { label: 'Profil Saya', href: '/dashboard/profil', icon: UserCircle },
             ],
         },
         {
@@ -83,6 +84,7 @@ export default function GlobalSidebar({ isOpen, onClose }: GlobalSidebarProps) {
         {
             group: 'Informasi & Dokumen',
             items: [
+                { label: 'Buat Berita', href: '/berita/buat', icon: PenSquare },
                 { label: 'Berita', href: '/berita', icon: Newspaper },
                 { label: 'Organisasi', href: '/organisasi', icon: Building },
                 { label: 'Galeri', href: '/#galeri', icon: ImageIcon },

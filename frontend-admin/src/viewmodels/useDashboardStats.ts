@@ -8,25 +8,20 @@ import type { TimeRange } from '@/models/member.types';
 
 export function useDashboardStats() {
     const { idToken } = useAuth();
-    const [range, setRange] = useState<TimeRange>('weekly');
-    const [selectedDate, setSelectedDate] = useState<string>(() => {
-        // Default: today in YYYY-MM-DD (WIB)
-        return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
-    });
+    const [range, setRangeState] = useState<TimeRange>('weekly');
 
     const { data, isLoading, isError, refetch } = useQuery({
-        queryKey: ['dashboardStats', range, range === 'hourly' ? selectedDate : null],
-        queryFn: () => adminService.getStats(idToken!, range, range === 'hourly' ? selectedDate : undefined),
+        queryKey: ['dashboardStats', range],
+        queryFn: () => adminService.getStats(idToken!, range),
         enabled: !!idToken,
-        staleTime: 2 * 60 * 1000, // 2 min
+        staleTime: 2 * 60 * 1000,
+        // Retry sekali jika gagal — handle kasus token belum siap
+        retry: 1,
+        retryDelay: 500,
     });
 
-    const handleRangeChange = useCallback((r: TimeRange) => {
-        setRange(r);
-    }, []);
-
-    const handleDateChange = useCallback((date: string) => {
-        setSelectedDate(date);
+    const setRange = useCallback((r: TimeRange) => {
+        setRangeState(r);
     }, []);
 
     return {
@@ -34,9 +29,7 @@ export function useDashboardStats() {
         isLoading,
         isError,
         range,
-        setRange: handleRangeChange,
-        selectedDate,
-        setSelectedDate: handleDateChange,
+        setRange,
         refetch,
     };
 }

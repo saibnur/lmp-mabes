@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 
 /* ──────────────────────────────────────────────────────────────
    LMP Design Tokens — Merah Putih Hitam
@@ -46,12 +47,16 @@
   --color-lmp-red: var(--lmp-red);
   --color-lmp-red-dark: var(--lmp-red-dark);
   --color-lmp-red-light: var(--lmp-red-light);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+
+  /* Font Mappings — maps Geist variables to Tailwind theme */
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
 body {
   background: var(--lmp-white);
   color: var(--lmp-black);
-  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }

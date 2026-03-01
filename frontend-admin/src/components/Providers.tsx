@@ -20,19 +20,24 @@ export default function Providers({ children }: { children: React.ReactNode }) {
             <AuthProvider>
                 {children}
                 <Toaster
-                    position="top-right"
+                    position="bottom-center"
                     toastOptions={{
                         duration: 4000,
                         style: {
-                            background: '#1e293b',
-                            color: '#e2e8f0',
-                            border: '1px solid #334155',
+                            background: '#0f172a', /* border-slate-900 */
+                            color: '#ffffff',
+                            padding: '12px 24px',
+                            fontSize: '14px',
+                            fontWeight: '500',
+                            borderRadius: '0.75rem',
+                            boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)',
+                            border: 'none',
                         },
                         success: {
-                            iconTheme: { primary: '#22c55e', secondary: '#1e293b' },
+                            iconTheme: { primary: '#10b981', secondary: '#ffffff' },
                         },
                         error: {
-                            iconTheme: { primary: '#ef4444', secondary: '#1e293b' },
+                            iconTheme: { primary: '#ef4444', secondary: '#ffffff' },
                         },
                     }}
                 />

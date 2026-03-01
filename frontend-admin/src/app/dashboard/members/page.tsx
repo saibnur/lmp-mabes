@@ -2,27 +2,28 @@
 
 import { useState } from 'react';
 import { useMemberManager } from '@/viewmodels/useMemberManager';
+import { useKtaPreview } from '@/features/kta/hooks/useKtaPreview';
 import MemberSearch from '@/components/members/MemberSearch';
 import RegionFilter from '@/components/members/RegionFilter';
 import MemberTable from '@/components/members/MemberTable';
 import EditRoleModal from '@/components/members/EditRoleModal';
+import KtaPreviewModal from '@/features/kta/components/KtaPreviewModal';
 import type { Member } from '@/models/member.types';
 
 export default function MembersPage() {
     const vm = useMemberManager();
     const [editingMember, setEditingMember] = useState<Member | null>(null);
+    const { previewMember, ktaConfig, openPreview, closePreview } = useKtaPreview();
 
     return (
         <div className="space-y-5">
-            {/* Header */}
             <div>
-                <h1 className="text-xl font-black text-white">Manajemen Member</h1>
-                <p className="text-sm text-white/40 mt-0.5">
+                <h1 className="text-xl font-black text-foreground">Manajemen Member</h1>
+                <p className="text-sm text-text-muted mt-0.5">
                     {vm.isLoading ? 'Memuat...' : `${vm.totalMembers} member ditemukan`}
                 </p>
             </div>
 
-            {/* Search — 3 fields */}
             <MemberSearch
                 value={vm.search}
                 onChange={vm.setSearch}
@@ -32,20 +33,18 @@ export default function MembersPage() {
                 onPhoneChange={vm.setSearchPhone}
             />
 
-            {/* Region Filters */}
             <RegionFilter
                 provinceId={vm.provinceId}
-                cityId={vm.cityId}
+                regencyId={vm.regencyId}
                 districtId={vm.districtId}
                 villageId={vm.villageId}
                 onProvinceChange={vm.handleProvinceChange}
-                onCityChange={vm.handleCityChange}
+                onRegencyChange={vm.handleRegencyChange}
                 onDistrictChange={vm.handleDistrictChange}
                 onVillageChange={vm.handleVillageChange}
                 onReset={vm.resetFilters}
             />
 
-            {/* Table (desktop) / Cards (mobile) */}
             <MemberTable
                 members={vm.members}
                 totalMembers={vm.totalMembers}
@@ -53,15 +52,22 @@ export default function MembersPage() {
                 totalPages={vm.totalPages}
                 onPageChange={vm.setPage}
                 onEdit={(m) => setEditingMember(m)}
+                onPreview={openPreview}
                 isLoading={vm.isLoading}
             />
 
-            {/* Edit Modal */}
             <EditRoleModal
                 member={editingMember}
                 onClose={() => setEditingMember(null)}
                 onSave={vm.updateRole}
                 isUpdating={vm.isUpdatingRole}
+            />
+
+            {/* Modal KTA — reusable, bisa dipanggil dari mana saja di halaman ini */}
+            <KtaPreviewModal
+                member={previewMember}
+                ktaConfig={ktaConfig}
+                onClose={closePreview}
             />
         </div>
     );

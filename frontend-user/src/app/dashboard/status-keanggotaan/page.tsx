@@ -391,7 +391,7 @@ export default function StatusKeanggotaanPage() {
                                         displayName={userDoc?.displayName || 'NAMA ANDA'}
                                         orgLevel={orgLevel}
                                         regionNames={orgRegionNames}
-                                        jabatanText="ANGGOTA"
+                                        jabatanText={(userDoc?.kepengurusan?.jabatan ?? 'ANGGOTA').toUpperCase()}
                                         noKta={userDoc.no_kta}
                                         isActive={userDoc?.membershipStatus === 'active'}
                                         expiryDate={expiryDate}

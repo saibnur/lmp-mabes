@@ -7,17 +7,12 @@ const db = getFirestore();
    MEMBERS
    ═══════════════════════════════════════════ */
 
-/**
- * GET /api/admin/members
- * Query params: search, email, phone, province_id, city_id, district_id, village_id
- */
 exports.getAllMembers = async (req, res) => {
     try {
         const { search, email, phone, province_id, city_id, district_id, village_id } = req.query;
 
         let query = db.collection('users');
 
-        // Region filters via Firestore queries
         if (village_id) {
             query = query.where('organization.village_id', '==', village_id);
         } else if (district_id) {
@@ -35,7 +30,6 @@ exports.getAllMembers = async (req, res) => {
             members.push({ uid: doc.id, ...doc.data() });
         });
 
-        // Client-side search filter (Firestore doesn't support LIKE)
         if (search && search.trim()) {
             const q = search.toLowerCase().trim();
             members = members.filter(m =>
@@ -44,15 +38,11 @@ exports.getAllMembers = async (req, res) => {
             );
         }
 
-        // Email filter
         if (email && email.trim()) {
             const q = email.toLowerCase().trim();
-            members = members.filter(m =>
-                m.email && m.email.toLowerCase().includes(q)
-            );
+            members = members.filter(m => m.email && m.email.toLowerCase().includes(q));
         }
 
-        // Phone filter — normalize: if starts with 0, replace with 62
         if (phone && phone.trim()) {
             const raw = phone.trim();
             const normalized = raw.startsWith('0') ? '62' + raw.slice(1) : raw;
@@ -62,7 +52,6 @@ exports.getAllMembers = async (req, res) => {
             });
         }
 
-        // Remove sensitive fields
         members = members.map(m => {
             const { passwordHash, ...safe } = m;
             return safe;
@@ -75,41 +64,29 @@ exports.getAllMembers = async (req, res) => {
     }
 };
 
-/**
- * PUT /api/admin/members/:uid/role
- */
 exports.updateMemberRole = async (req, res) => {
     try {
         const { uid } = req.params;
         const { role, kepengurusan } = req.body;
 
-        if (!uid) {
-            return res.status(400).json({ success: false, message: 'UID wajib diisi' });
-        }
+        if (!uid) return res.status(400).json({ success: false, message: 'UID wajib diisi' });
 
         const userRef = db.collection('users').doc(uid);
         const userDoc = await userRef.get();
 
-        if (!userDoc.exists) {
-            return res.status(404).json({ success: false, message: 'Member tidak ditemukan' });
-        }
+        if (!userDoc.exists) return res.status(404).json({ success: false, message: 'Member tidak ditemukan' });
 
         const userData = userDoc.data();
-
         if (userData.membershipStatus !== 'active') {
             return res.status(403).json({
                 success: false,
-                message: 'Tidak bisa mengubah role/kepengurusan. Member belum membayar iuran keanggotaan (status bukan active).',
+                message: 'Tidak bisa mengubah role/kepengurusan. Member belum membayar iuran keanggotaan.',
             });
         }
 
-        const updatePayload = {
-            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-        };
+        const updatePayload = { updatedAt: admin.firestore.FieldValue.serverTimestamp() };
 
-        if (role && ['admin', 'member'].includes(role)) {
-            updatePayload.role = role;
-        }
+        if (role && ['admin', 'member'].includes(role)) updatePayload.role = role;
 
         if (kepengurusan !== undefined) {
             if (kepengurusan === null) {
@@ -123,6 +100,15 @@ exports.updateMemberRole = async (req, res) => {
             }
         }
 
+        // --- NEW LOGIC: Dual write to organization
+        if (req.body.organization !== undefined) {
+            updatePayload.organization = {
+                ...(userData.organization || {}),
+                ...req.body.organization,
+                updatedAt: new Date().toISOString()
+            };
+        }
+
         await userRef.update(updatePayload);
         res.status(200).json({ success: true, message: 'Role/kepengurusan berhasil diperbarui' });
     } catch (error) {
@@ -132,26 +118,34 @@ exports.updateMemberRole = async (req, res) => {
 };
 
 /* ═══════════════════════════════════════════
-   STATS — Dual-series (active + pending)
+   STATS
    ═══════════════════════════════════════════ */
 
 /**
  * GET /api/admin/stats
- * Query params: range = hourly | weekly | monthly | yearly
- *               date  = YYYY-MM-DD  (only for hourly)
+ *
+ * Query params:
+ *   range = daily | weekly | monthly | yearly   (default: weekly)
+ *
+ * Range semantics (sesuai spesifikasi dashboard):
+ *   daily   → 7 hari terakhir,      sumbu X = nama hari  (Sen, Sel, ...)
+ *   weekly  → 8 minggu terakhir,    sumbu X = rentang    (01-07 Jan)
+ *   monthly → 12 bulan terakhir,    sumbu X = nama bulan (Jan, Feb, ...)
+ *   yearly  → 5 tahun terakhir,     sumbu X = tahun      (2024, 2025, ...)
  */
 exports.getStats = async (req, res) => {
     try {
-        const { range = 'weekly', date } = req.query;
+        const { range = 'weekly' } = req.query;
 
         const snapshot = await db.collection('users').get();
+
         let totalMembers = 0;
         let activeMembers = 0;
         let pendingMembers = 0;
         let expiredMembers = 0;
         let totalAdmins = 0;
 
-        // Collect { ts, membershipStatus } for chart
+        // Kumpulkan { ts: Date, status: string } untuk chart
         const registrations = [];
 
         snapshot.forEach(doc => {
@@ -164,7 +158,7 @@ exports.getStats = async (req, res) => {
 
             if (data.createdAt) {
                 let ts;
-                if (data.createdAt.toDate) {
+                if (typeof data.createdAt.toDate === 'function') {
                     ts = data.createdAt.toDate();
                 } else if (data.createdAt._seconds) {
                     ts = new Date(data.createdAt._seconds * 1000);
@@ -172,15 +166,12 @@ exports.getStats = async (req, res) => {
                     ts = new Date(data.createdAt);
                 }
                 if (!isNaN(ts.getTime())) {
-                    registrations.push({
-                        ts,
-                        status: data.membershipStatus || 'pending',
-                    });
+                    registrations.push({ ts, status: data.membershipStatus || 'pending' });
                 }
             }
         });
 
-        const registrationData = buildChartData(registrations, range, date);
+        const registrationData = buildChartData(registrations, range);
 
         res.status(200).json({
             success: true,
@@ -190,7 +181,7 @@ exports.getStats = async (req, res) => {
                 pendingMembers,
                 expiredMembers,
                 totalAdmins,
-                registrationData,
+                registrationData,   // [{ label, active, pending }]
             },
         });
     } catch (error) {
@@ -199,94 +190,116 @@ exports.getStats = async (req, res) => {
     }
 };
 
-/**
- * Build a dual-series dataset: [{label, active, pending}, ...]
- */
-function buildChartData(registrations, range, dateParam) {
+/* ─────────────────────────────────────────────────────────
+   buildChartData — membangun dataset dual-series untuk Recharts
+   Selalu membuat bucket kosong terlebih dahulu agar tidak ada
+   titik bolong di grafik meski tidak ada pendaftaran di periode itu.
+───────────────────────────────────────────────────────── */
+function buildChartData(registrations, range) {
     const now = new Date();
 
-    if (range === 'hourly') {
-        // Target date: from query param or today (WIB = UTC+7)
-        const targetDate = dateParam ? new Date(dateParam + 'T00:00:00+07:00') : new Date(now.toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }) + 'T00:00:00+07:00');
-        const targetStr = targetDate.toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
+    // ── Helper ──────────────────────────────────────────────
+    const fmtDate = (d) =>
+        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-        // 24 hourly buckets
-        const buckets = Array.from({ length: 24 }, (_, h) => ({
-            label: String(h).padStart(2, '0') + ':00',
+    const increment = (bucket, status) => {
+        if (status === 'active') bucket.active++;
+        else if (status === 'pending') bucket.pending++;
+    };
+
+    // ── DAILY: 7 hari terakhir ──────────────────────────────
+    if (range === 'daily') {
+        const DAY_ID = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+
+        // Buat 7 bucket: [6 hari lalu … hari ini]
+        const buckets = Array.from({ length: 7 }, (_, i) => {
+            const d = new Date(now);
+            d.setDate(now.getDate() - (6 - i));
+            d.setHours(0, 0, 0, 0);
+            return { label: DAY_ID[d.getDay()], dateStr: fmtDate(d), active: 0, pending: 0 };
+        });
+
+        const bucketMap = Object.fromEntries(buckets.map(b => [b.dateStr, b]));
+
+        registrations.forEach(({ ts, status }) => {
+            const key = fmtDate(ts);
+            if (bucketMap[key]) increment(bucketMap[key], status);
+        });
+
+        return buckets.map(({ label, active, pending }) => ({ label, active, pending }));
+    }
+
+    // ── WEEKLY: 8 minggu terakhir ───────────────────────────
+    if (range === 'weekly') {
+        const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'];
+
+        // Buat 8 bucket, masing-masing 7 hari, dari yang terlama ke terbaru
+        const buckets = Array.from({ length: 8 }, (_, i) => {
+            // i=0 → 7 minggu lalu, i=7 → minggu ini
+            const end = new Date(now);
+            end.setDate(now.getDate() - (7 - i) * 7);
+            end.setHours(23, 59, 59, 999);
+
+            const start = new Date(end);
+            start.setDate(end.getDate() - 6);
+            start.setHours(0, 0, 0, 0);
+
+            const label = `${String(start.getDate()).padStart(2, '0')}-${String(end.getDate()).padStart(2, '0')} ${MONTH_SHORT[end.getMonth()]}`;
+            return { label, start, end, active: 0, pending: 0 };
+        });
+
+        registrations.forEach(({ ts, status }) => {
+            const bucket = buckets.find(b => ts >= b.start && ts <= b.end);
+            if (bucket) increment(bucket, status);
+        });
+
+        return buckets.map(({ label, active, pending }) => ({ label, active, pending }));
+    }
+
+    // ── MONTHLY: 12 bulan terakhir ──────────────────────────
+    if (range === 'monthly') {
+        const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'];
+
+        // Buat 12 bucket: [11 bulan lalu … bulan ini]
+        const buckets = Array.from({ length: 12 }, (_, i) => {
+            const d = new Date(now.getFullYear(), now.getMonth() - (11 - i), 1);
+            return {
+                label: MONTH_SHORT[d.getMonth()],
+                year: d.getFullYear(),
+                month: d.getMonth(),
+                active: 0,
+                pending: 0,
+            };
+        });
+
+        const bucketMap = Object.fromEntries(
+            buckets.map(b => [`${b.year}-${b.month}`, b])
+        );
+
+        registrations.forEach(({ ts, status }) => {
+            const key = `${ts.getFullYear()}-${ts.getMonth()}`;
+            if (bucketMap[key]) increment(bucketMap[key], status);
+        });
+
+        return buckets.map(({ label, active, pending }) => ({ label, active, pending }));
+    }
+
+    // ── YEARLY: 5 tahun terakhir ────────────────────────────
+    if (range === 'yearly') {
+        const currentYear = now.getFullYear();
+
+        const buckets = Array.from({ length: 5 }, (_, i) => ({
+            label: String(currentYear - (4 - i)),
+            year: currentYear - (4 - i),
             active: 0,
             pending: 0,
         }));
 
-        registrations.forEach(({ ts, status }) => {
-            const dayStr = ts.toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
-            if (dayStr !== targetStr) return;
-            const hour = parseInt(ts.toLocaleTimeString('en-US', { timeZone: 'Asia/Jakarta', hour12: false, hour: '2-digit' }), 10);
-            const s = status === 'active' ? 'active' : 'pending';
-            if (buckets[hour]) buckets[hour][s]++;
-        });
-
-        return buckets;
-    }
-
-    if (range === 'weekly') {
-        // Monday–Sunday of current week
-        const dayOfWeek = now.getDay(); // 0=Sun
-        const monday = new Date(now);
-        monday.setDate(now.getDate() - ((dayOfWeek + 6) % 7));
-        monday.setHours(0, 0, 0, 0);
-
-        const DAYS = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
-        const buckets = DAYS.map((label, i) => {
-            const d = new Date(monday);
-            d.setDate(monday.getDate() + i);
-            return { label, date: d.toLocaleDateString('en-CA'), active: 0, pending: 0 };
-        });
+        const bucketMap = Object.fromEntries(buckets.map(b => [b.year, b]));
 
         registrations.forEach(({ ts, status }) => {
-            const dayStr = ts.toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
-            const bucket = buckets.find(b => b.date === dayStr);
-            if (!bucket) return;
-            const s = status === 'active' ? 'active' : 'pending';
-            bucket[s]++;
-        });
-
-        return buckets.map(({ label, active, pending }) => ({ label, active, pending }));
-    }
-
-    if (range === 'monthly') {
-        // Day 1 – last day of current month
-        const year = now.getFullYear();
-        const month = now.getMonth();
-        const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-        const buckets = Array.from({ length: daysInMonth }, (_, i) => {
-            const day = i + 1;
-            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-            return { label: String(day), date: dateStr, active: 0, pending: 0 };
-        });
-
-        registrations.forEach(({ ts, status }) => {
-            const dayStr = ts.toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
-            const bucket = buckets.find(b => b.date === dayStr);
-            if (!bucket) return;
-            const s = status === 'active' ? 'active' : 'pending';
-            bucket[s]++;
-        });
-
-        return buckets.map(({ label, active, pending }) => ({ label, active, pending }));
-    }
-
-    if (range === 'yearly') {
-        // Jan–Dec of current year
-        const year = now.getFullYear();
-        const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-        const buckets = MONTHS.map((label, i) => ({ label, month: i, active: 0, pending: 0 }));
-
-        registrations.forEach(({ ts, status }) => {
-            if (ts.getFullYear() !== year) return;
-            const m = ts.getMonth();
-            const s = status === 'active' ? 'active' : 'pending';
-            buckets[m][s]++;
+            const bucket = bucketMap[ts.getFullYear()];
+            if (bucket) increment(bucket, status);
         });
 
         return buckets.map(({ label, active, pending }) => ({ label, active, pending }));
@@ -308,49 +321,25 @@ exports.checkNikDuplicates = async (req, res) => {
             const matches = [];
             snapshot.forEach(doc => {
                 const d = doc.data();
-                matches.push({
-                    uid: doc.id,
-                    displayName: d.displayName,
-                    phoneNumber: d.phoneNumber || d.phone,
-                    no_kta: d.no_kta,
-                });
+                matches.push({ uid: doc.id, displayName: d.displayName, phoneNumber: d.phoneNumber || d.phone, no_kta: d.no_kta });
             });
-
             res.status(200).json({
                 success: true,
-                data: [{
-                    nik,
-                    isDuplicate: matches.length > 1,
-                    matchingMembers: matches,
-                }],
+                data: [{ nik, isDuplicate: matches.length > 1, matchingMembers: matches }],
             });
         } else {
             const snapshot = await db.collection('users').where('nik', '!=', '').get();
             const nikMap = {};
-
             snapshot.forEach(doc => {
                 const d = doc.data();
                 if (d.nik) {
                     if (!nikMap[d.nik]) nikMap[d.nik] = [];
-                    nikMap[d.nik].push({
-                        uid: doc.id,
-                        displayName: d.displayName,
-                        phoneNumber: d.phoneNumber || d.phone,
-                        no_kta: d.no_kta,
-                        ktpURL: d.ktpURL,
-                        membershipStatus: d.membershipStatus,
-                    });
+                    nikMap[d.nik].push({ uid: doc.id, displayName: d.displayName, phoneNumber: d.phoneNumber || d.phone, no_kta: d.no_kta, ktpURL: d.ktpURL, membershipStatus: d.membershipStatus });
                 }
             });
-
             const duplicates = Object.entries(nikMap)
                 .filter(([, members]) => members.length > 1)
-                .map(([nik, matchingMembers]) => ({
-                    nik,
-                    isDuplicate: true,
-                    matchingMembers,
-                }));
-
+                .map(([nik, matchingMembers]) => ({ nik, isDuplicate: true, matchingMembers }));
             res.status(200).json({ success: true, data: duplicates });
         }
     } catch (error) {
@@ -367,9 +356,7 @@ exports.getNews = async (req, res) => {
     try {
         const snapshot = await db.collection('news').orderBy('createdAt', 'desc').get();
         const news = [];
-        snapshot.forEach(doc => {
-            news.push({ id: doc.id, ...doc.data() });
-        });
+        snapshot.forEach(doc => { news.push({ id: doc.id, ...doc.data() }); });
         res.status(200).json({ success: true, data: news });
     } catch (error) {
         console.error('[AdminController] getNews error:', error);
@@ -380,21 +367,17 @@ exports.getNews = async (req, res) => {
 exports.createNews = async (req, res) => {
     try {
         const { title, content, category, imageURL, published } = req.body;
-        if (!title || !content || !category) {
+        if (!title || !content || !category)
             return res.status(400).json({ success: false, message: 'Title, content, dan category wajib diisi' });
-        }
 
         const adminDoc = await db.collection('users').doc(req.uid).get();
         const adminName = adminDoc.exists ? adminDoc.data().displayName || 'Admin' : 'Admin';
 
         const docRef = await db.collection('news').add({
-            title,
-            content,
-            category,
+            title, content, category,
             imageURL: imageURL || '',
             published: published !== false,
-            author: adminName,
-            authorUid: req.uid,
+            author: adminName, authorUid: req.uid,
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
             updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
@@ -413,9 +396,7 @@ exports.updateNews = async (req, res) => {
 
         const ref = db.collection('news').doc(id);
         const doc = await ref.get();
-        if (!doc.exists) {
-            return res.status(404).json({ success: false, message: 'Berita tidak ditemukan' });
-        }
+        if (!doc.exists) return res.status(404).json({ success: false, message: 'Berita tidak ditemukan' });
 
         const updateData = { updatedAt: admin.firestore.FieldValue.serverTimestamp() };
         if (title !== undefined) updateData.title = title;
@@ -437,10 +418,7 @@ exports.deleteNews = async (req, res) => {
         const { id } = req.params;
         const ref = db.collection('news').doc(id);
         const doc = await ref.get();
-        if (!doc.exists) {
-            return res.status(404).json({ success: false, message: 'Berita tidak ditemukan' });
-        }
-
+        if (!doc.exists) return res.status(404).json({ success: false, message: 'Berita tidak ditemukan' });
         await ref.delete();
         res.status(200).json({ success: true, message: 'Berita berhasil dihapus' });
     } catch (error) {

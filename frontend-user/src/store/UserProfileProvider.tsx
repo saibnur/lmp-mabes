@@ -37,6 +37,7 @@ export interface UserProfile {
     district_name: string;
     village_id: string;
     village_name: string;
+    level?: string;
   };
 }
 

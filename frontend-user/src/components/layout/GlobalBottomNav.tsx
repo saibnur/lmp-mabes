@@ -12,7 +12,8 @@ import {
     ShieldCheck,
     Building,
     LogOut,
-    X
+    X,
+    Plus
 } from 'lucide-react';
 import { useUserProfile } from '@/store/UserProfileProvider';
 import { getFirebaseAuth } from '@/lib/firebase';
@@ -77,8 +78,16 @@ export default function GlobalBottomNav() {
                         <span className="text-[10px] font-bold uppercase tracking-wider">Bayar</span>
                     </Link>
                 )}
-                <Link href="/berita" className={`flex flex-1 flex-col items-center justify-center h-full gap-1 transition ${isActive('/berita') ? 'text-red-500' : 'text-slate-500 hover:text-slate-300'}`}>
-                    <Newspaper className={`h-5 w-5 ${isActive('/berita') ? 'fill-current' : ''}`} />
+
+                {/* Centered Plus Button for Creating Article */}
+                <Link href="/berita/buat" className="flex flex-col items-center justify-center -mt-6">
+                    <div className="bg-red-600 text-white rounded-full p-4 shadow-lg shadow-red-200 hover:bg-red-700 transition transform hover:scale-105 active:scale-95">
+                        <Plus className="h-6 w-6" />
+                    </div>
+                </Link>
+
+                <Link href="/berita" className={`flex flex-1 flex-col items-center justify-center h-full gap-1 transition ${isActive('/berita') && pathname !== '/berita/buat' ? 'text-red-500' : 'text-slate-500 hover:text-slate-300'}`}>
+                    <Newspaper className={`h-5 w-5 ${isActive('/berita') && pathname !== '/berita/buat' ? 'fill-current' : ''}`} />
                     <span className="text-[10px] font-bold uppercase tracking-wider">Berita</span>
                 </Link>
                 <button onClick={() => setIsProfileModalOpen(true)} className={`flex flex-1 flex-col items-center justify-center h-full gap-1 transition ${isProfileModalOpen ? 'text-red-500' : 'text-slate-500 hover:text-slate-300'}`}>
@@ -126,8 +135,8 @@ export default function GlobalBottomNav() {
                         </div>
 
                         <div className="space-y-3 mb-6">
-                            <Link href="/daftar/profil" onClick={() => setIsProfileModalOpen(false)} className="flex w-full items-center justify-between rounded-xl bg-slate-100 p-4 font-bold text-slate-700 hover:bg-slate-200 transition">
-                                Edit Profil Saya
+                            <Link href="/dashboard/profil" onClick={() => setIsProfileModalOpen(false)} className="flex w-full items-center justify-between rounded-xl bg-slate-100 p-4 font-bold text-slate-700 hover:bg-slate-200 transition">
+                                Lihat Profil Saya
                             </Link>
                         </div>
 
