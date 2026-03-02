@@ -41,7 +41,9 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
         };
     }, [open]);
 
-    const SidebarContent = () => (
+    /** Shared sidebar inner content — do NOT extract into a component
+     *  to avoid rendering the logout button twice (desktop + mobile). */
+    const renderSidebarContent = () => (
         <div className="flex h-full flex-col bg-slate-900 text-white">
             {/* Mobile Header */}
             <div className="flex items-center justify-between p-4 lg:hidden border-b border-slate-800">
@@ -61,11 +63,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
             {/* Logo / Header for Desktop */}
             <div className="hidden lg:flex h-16 items-center gap-3 border-b border-slate-800 px-4 mt-6 mb-2 mx-2">
                 <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white p-1">
-                    <img
-                        src="/logo-lmp.svg"
-                        alt="LMP Logo"
-                        className="h-full w-full object-contain"
-                    />
+                    <img src="/logo-lmp.svg" alt="LMP Logo" className="h-full w-full object-contain" />
                 </div>
                 <div>
                     <h1 className="text-sm font-black tracking-tight text-white uppercase italic">LMP Mabes</h1>
@@ -109,16 +107,15 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
             </nav>
 
             {/* Bottom: version + logout */}
-            <div className="border-t border-slate-800 p-4 space-y-2 pb-6">
-                <div className="px-4 text-[10px] text-slate-500 font-mono">
-                    LMP Admin v2.0
-                </div>
+            <div className="border-t border-slate-800 p-4 pb-6">
+                <div className="px-4 mb-2 text-[10px] text-slate-500 font-mono">LMP Admin v2.0</div>
                 <button
                     onClick={logout}
-                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-red-600 p-3 text-sm font-black text-white hover:bg-red-700 transition active:scale-95 shadow-lg shadow-red-900/20"
+                    className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-slate-400
+                               hover:bg-red-600/10 hover:text-red-400 transition-all duration-200 group"
                 >
-                    <LogOut className="h-4 w-4" />
-                    KELUAR / LOGOUT
+                    <LogOut className="h-5 w-5 shrink-0 group-hover:text-red-400" />
+                    Keluar / Logout
                 </button>
             </div>
         </div>
@@ -128,7 +125,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
         <>
             {/* Desktop Sidebar (lg:flex) */}
             <aside className="hidden lg:flex fixed left-0 top-0 z-40 h-screen w-72 flex-col bg-slate-900 transition-transform shadow-xl shadow-slate-900/10">
-                <SidebarContent />
+                {renderSidebarContent()}
             </aside>
 
             {/* Mobile Drawer (Overlay + Sidebar) */}
@@ -139,10 +136,11 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
                         onClick={onClose}
                     />
                     <div className="absolute inset-y-0 left-0 w-4/5 max-w-sm bg-slate-900 shadow-2xl transition-transform transform translate-x-0">
-                        <SidebarContent />
+                        {renderSidebarContent()}
                     </div>
                 </div>
             )}
         </>
     );
 }
+

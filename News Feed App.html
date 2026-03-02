@@ -1,0 +1,1504 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <title>Pulse — News Feed</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,400;1,700&family=Libre+Franklin:wght@300;400;500;600&display=swap"
+        rel="stylesheet">
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg: #0E0E10;
+            --surface: #18181C;
+            --surface2: #222228;
+            --border: rgba(255, 255, 255, 0.07);
+            --text: #F0EEE8;
+            --text-muted: #6B6B7A;
+            --text-dim: #9999AA;
+            --accent: #E8C547;
+            --accent2: #FF5C5C;
+            --accent3: #5CE8B4;
+            --radius: 20px;
+            --shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        body {
+            font-family: 'Libre Franklin', sans-serif;
+            background: #070708;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .phone {
+            width: 390px;
+            height: 844px;
+            background: var(--bg);
+            border-radius: 50px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 50px 120px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.06) inset;
+        }
+
+        /* pages */
+        .page {
+            position: absolute;
+            inset: 0;
+            overflow-y: auto;
+            overflow-x: hidden;
+            scrollbar-width: none;
+            padding-bottom: 90px;
+            transition: transform 0.6s cubic-bezier(0.77, 0, 0.175, 1), opacity 0.5s ease;
+        }
+
+        .page::-webkit-scrollbar {
+            display: none;
+        }
+
+        .page.hidden {
+            transform: translateX(110%);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* ---- HEADER ---- */
+        .header {
+            padding: 52px 22px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .logo {
+            font-family: 'Playfair Display', serif;
+            font-size: 28px;
+            font-weight: 900;
+            color: var(--text);
+            letter-spacing: -0.5px;
+        }
+
+        .logo span {
+            color: var(--accent);
+        }
+
+        .header-right {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .icon-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: relative;
+            transition: transform 0.15s, background 0.15s;
+        }
+
+        .icon-btn:active {
+            transform: scale(0.88);
+        }
+
+        .notif-dot {
+            position: absolute;
+            top: 8px;
+            right: 9px;
+            width: 7px;
+            height: 7px;
+            background: var(--accent2);
+            border-radius: 50%;
+            border: 2px solid var(--bg);
+        }
+
+        .avatar-sm {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent), #C49B20);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 13px;
+            color: #0E0E10;
+            border: 2px solid var(--border);
+        }
+
+        /* greeting strip */
+        .greeting-strip {
+            padding: 14px 22px 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            animation: fadeUp 0.5s ease 0.05s both;
+        }
+
+        .greeting-strip h2 {
+            font-size: 12px;
+            font-weight: 300;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+
+        .greeting-strip h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text);
+            margin-top: 2px;
+        }
+
+        .date-badge {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 6px 12px;
+            font-size: 11px;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        /* search */
+        .search-wrap {
+            padding: 0 22px 18px;
+            display: flex;
+            gap: 10px;
+            animation: fadeUp 0.5s ease 0.1s both;
+        }
+
+        .search-box {
+            flex: 1;
+            height: 46px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 0 16px 0 42px;
+            font-family: 'Libre Franklin', sans-serif;
+            font-size: 13px;
+            color: var(--text);
+            outline: none;
+        }
+
+        .search-box::placeholder {
+            color: var(--text-muted);
+        }
+
+        .search-box-wrap {
+            flex: 1;
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .search-box-wrap svg {
+            position: absolute;
+            left: 14px;
+            pointer-events: none;
+        }
+
+        .search-box-wrap .search-box {
+            width: 100%;
+        }
+
+        .filter-btn {
+            width: 46px;
+            height: 46px;
+            background: var(--accent);
+            border: none;
+            border-radius: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            box-shadow: 0 6px 20px rgba(232, 197, 71, 0.35);
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+
+        .filter-btn:active {
+            transform: scale(0.9);
+            box-shadow: 0 3px 10px rgba(232, 197, 71, 0.2);
+        }
+
+        /* category chips */
+        .cats {
+            display: flex;
+            gap: 8px;
+            padding: 0 22px 20px;
+            overflow-x: auto;
+            scrollbar-width: none;
+            animation: fadeUp 0.5s ease 0.15s both;
+        }
+
+        .cats::-webkit-scrollbar {
+            display: none;
+        }
+
+        .cat {
+            flex-shrink: 0;
+            padding: 7px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            background: var(--surface);
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        .cat:active {
+            transform: scale(0.94);
+        }
+
+        .cat.active {
+            background: var(--accent);
+            color: #0E0E10;
+            border-color: var(--accent);
+            box-shadow: 0 4px 14px rgba(232, 197, 71, 0.3);
+        }
+
+        /* Section header */
+        .sec-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 22px 14px;
+        }
+
+        .sec-head h3 {
+            font-family: 'Playfair Display', serif;
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .see-all {
+            font-size: 12px;
+            color: var(--accent);
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        /* ---- HERO CARD ---- */
+        .hero-card {
+            margin: 0 22px 22px;
+            border-radius: var(--radius);
+            overflow: hidden;
+            background: var(--surface);
+            cursor: pointer;
+            box-shadow: var(--shadow);
+            transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+            animation: fadeUp 0.5s ease 0.2s both;
+            position: relative;
+        }
+
+        .hero-card:active {
+            transform: scale(0.97);
+        }
+
+        .hero-card .img-wrap {
+            height: 200px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-card .img-wrap img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+        }
+
+        .hero-card:hover .img-wrap img {
+            transform: scale(1.04);
+        }
+
+        .hero-card .img-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to top, rgba(14, 14, 16, 0.95) 0%, rgba(14, 14, 16, 0.2) 60%, transparent 100%);
+        }
+
+        .live-badge {
+            position: absolute;
+            top: 14px;
+            left: 14px;
+            background: var(--accent2);
+            color: #fff;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .live-dot {
+            width: 6px;
+            height: 6px;
+            background: #fff;
+            border-radius: 50%;
+            animation: livePulse 1.2s ease infinite;
+        }
+
+        @keyframes livePulse {
+
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 0.4;
+                transform: scale(0.7);
+            }
+        }
+
+        .bookmark-btn {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            width: 34px;
+            height: 34px;
+            background: rgba(14, 14, 16, 0.7);
+            backdrop-filter: blur(6px);
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.15s, background 0.2s;
+        }
+
+        .bookmark-btn:active {
+            transform: scale(0.85);
+        }
+
+        .bookmark-btn.saved {
+            background: var(--accent);
+        }
+
+        .hero-card .card-body {
+            padding: 16px 18px 18px;
+        }
+
+        .topic-tag {
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            margin-bottom: 8px;
+        }
+
+        .card-headline {
+            font-family: 'Playfair Display', serif;
+            font-size: 19px;
+            font-weight: 700;
+            line-height: 1.25;
+            color: var(--text);
+            margin-bottom: 10px;
+        }
+
+        .card-meta-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .author-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .author-av {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #5CE8B4, #2AB87A);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            font-weight: 700;
+            color: #0E0E10;
+            flex-shrink: 0;
+        }
+
+        .author-name {
+            font-size: 12px;
+            color: var(--text-dim);
+            font-weight: 500;
+        }
+
+        .read-time {
+            font-size: 11px;
+            color: var(--text-muted);
+            background: var(--surface2);
+            padding: 4px 10px;
+            border-radius: 8px;
+        }
+
+        .card-stats {
+            display: flex;
+            gap: 14px;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border);
+        }
+
+        .stat {
+            font-size: 11px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        /* ---- Horizontal mini cards ---- */
+        .mini-cards {
+            display: flex;
+            gap: 14px;
+            padding: 0 22px 22px;
+            overflow-x: auto;
+            scrollbar-width: none;
+            animation: fadeUp 0.5s ease 0.25s both;
+        }
+
+        .mini-cards::-webkit-scrollbar {
+            display: none;
+        }
+
+        .mini-card {
+            flex-shrink: 0;
+            width: 190px;
+            background: var(--surface);
+            border-radius: 16px;
+            overflow: hidden;
+            cursor: pointer;
+            border: 1px solid var(--border);
+            transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .mini-card:active {
+            transform: scale(0.94);
+        }
+
+        .mini-card:hover {
+            transform: translateY(-3px);
+        }
+
+        .mini-img {
+            height: 110px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .mini-img img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.4s;
+        }
+
+        .mini-card:hover .mini-img img {
+            transform: scale(1.06);
+        }
+
+        .mini-img-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to top, rgba(14, 14, 16, 0.7) 0%, transparent 60%);
+        }
+
+        .mini-body {
+            padding: 12px 14px 14px;
+        }
+
+        .mini-topic {
+            font-size: 9px;
+            font-weight: 700;
+            color: var(--accent3);
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            margin-bottom: 5px;
+        }
+
+        .mini-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text);
+            line-height: 1.3;
+            margin-bottom: 8px;
+        }
+
+        .mini-time {
+            font-size: 10px;
+            color: var(--text-muted);
+        }
+
+        /* ---- Vertical list ---- */
+        .news-list {
+            padding: 0 22px;
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            animation: fadeUp 0.5s ease 0.3s both;
+        }
+
+        .news-item {
+            display: flex;
+            gap: 14px;
+            padding: 16px 0;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .news-item:active {
+            opacity: 0.7;
+        }
+
+        .news-item:last-child {
+            border-bottom: none;
+        }
+
+        .news-item-img {
+            width: 80px;
+            height: 80px;
+            border-radius: 12px;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .news-item-img img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.4s;
+        }
+
+        .news-item:hover .news-item-img img {
+            transform: scale(1.08);
+        }
+
+        .news-item-body {
+            flex: 1;
+        }
+
+        .ni-topic {
+            font-size: 9px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            margin-bottom: 5px;
+        }
+
+        .ni-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text);
+            line-height: 1.3;
+            margin-bottom: 6px;
+        }
+
+        .ni-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .ni-source {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .ni-time {
+            font-size: 10px;
+            color: var(--text-muted);
+            background: var(--surface2);
+            padding: 3px 8px;
+            border-radius: 6px;
+        }
+
+        /* ---- Bottom nav ---- */
+        .bottom-nav {
+            position: absolute;
+            bottom: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: calc(100% - 36px);
+            background: rgba(24, 24, 28, 0.95);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--border);
+            border-radius: 26px;
+            padding: 10px 6px;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            z-index: 100;
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+            cursor: pointer;
+            padding: 8px 16px;
+            border-radius: 18px;
+            transition: background 0.2s, transform 0.15s;
+        }
+
+        .nav-item:active {
+            transform: scale(0.9);
+        }
+
+        .nav-item.active {
+            background: rgba(232, 197, 71, 0.12);
+        }
+
+        .nav-lbl {
+            font-size: 9px;
+            font-weight: 600;
+            color: var(--text-muted);
+            opacity: 0;
+            transform: translateY(4px);
+            transition: all 0.2s;
+        }
+
+        .nav-item.active .nav-lbl {
+            opacity: 1;
+            transform: translateY(0);
+            color: var(--accent);
+        }
+
+        /* ======================== DETAIL PAGE ======================== */
+        #detail-page {
+            background: var(--bg);
+        }
+
+        .detail-hero {
+            position: relative;
+            height: 280px;
+            overflow: hidden;
+        }
+
+        .detail-hero img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            animation: heroZoom 10s ease-in-out infinite alternate;
+        }
+
+        @keyframes heroZoom {
+            from {
+                transform: scale(1);
+            }
+
+            to {
+                transform: scale(1.06);
+            }
+        }
+
+        .detail-hero-overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to bottom, rgba(14, 14, 16, 0.4) 0%, transparent 40%, rgba(14, 14, 16, 0.98) 100%);
+        }
+
+        .back-btn {
+            position: absolute;
+            top: 52px;
+            left: 18px;
+            width: 38px;
+            height: 38px;
+            background: rgba(14, 14, 16, 0.75);
+            backdrop-filter: blur(8px);
+            border-radius: 50%;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.15s;
+            z-index: 10;
+        }
+
+        .back-btn:active {
+            transform: scale(0.87);
+        }
+
+        .detail-category {
+            position: absolute;
+            bottom: 80px;
+            left: 22px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            animation: fadeUp 0.4s ease 0.05s both;
+        }
+
+        .detail-title-overlay {
+            position: absolute;
+            bottom: 22px;
+            left: 22px;
+            right: 22px;
+            font-family: 'Playfair Display', serif;
+            font-size: 24px;
+            font-weight: 900;
+            color: var(--text);
+            line-height: 1.2;
+            animation: fadeUp 0.4s ease 0.1s both;
+        }
+
+        .detail-body {
+            padding: 22px;
+        }
+
+        .detail-author-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            animation: fadeUp 0.4s ease 0.15s both;
+        }
+
+        .author-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .author-av-lg {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #5CE8B4, #2AB87A);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 12px;
+            color: #0E0E10;
+        }
+
+        .author-details .name {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .author-details .meta {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 1px;
+        }
+
+        .follow-btn {
+            background: transparent;
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            font-family: 'Libre Franklin', sans-serif;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 7px 18px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .follow-btn:active {
+            background: var(--accent);
+            color: #0E0E10;
+            transform: scale(0.94);
+        }
+
+        .detail-divider {
+            width: 40px;
+            height: 3px;
+            background: var(--accent);
+            border-radius: 2px;
+            margin-bottom: 18px;
+            animation: fadeUp 0.4s ease 0.2s both;
+        }
+
+        .detail-text {
+            font-size: 15px;
+            line-height: 1.85;
+            color: var(--text-dim);
+            animation: fadeUp 0.4s ease 0.25s both;
+        }
+
+        .detail-text .drop-cap::first-letter {
+            font-family: 'Playfair Display', serif;
+            font-size: 52px;
+            font-weight: 900;
+            float: left;
+            line-height: 0.8;
+            margin-right: 8px;
+            margin-top: 8px;
+            color: var(--accent);
+        }
+
+        .quote-block {
+            margin: 22px 0;
+            border-left: 3px solid var(--accent);
+            padding: 14px 18px;
+            background: var(--surface);
+            border-radius: 0 12px 12px 0;
+            font-family: 'Playfair Display', serif;
+            font-style: italic;
+            font-size: 16px;
+            line-height: 1.6;
+            color: var(--text);
+            animation: fadeUp 0.4s ease 0.3s both;
+        }
+
+        .related-label {
+            font-family: 'Playfair Display', serif;
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text);
+            margin: 24px 0 14px;
+            animation: fadeUp 0.4s ease 0.35s both;
+        }
+
+        .related-card {
+            display: flex;
+            gap: 12px;
+            background: var(--surface);
+            border-radius: 14px;
+            padding: 12px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            border: 1px solid var(--border);
+            transition: transform 0.15s;
+            animation: fadeUp 0.4s ease 0.4s both;
+        }
+
+        .related-card:active {
+            transform: scale(0.97);
+        }
+
+        .related-img {
+            width: 60px;
+            height: 60px;
+            border-radius: 10px;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .related-img img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .rel-topic {
+            font-size: 9px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--accent3);
+            margin-bottom: 4px;
+        }
+
+        .rel-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text);
+            line-height: 1.3;
+        }
+
+        .detail-actions {
+            display: flex;
+            gap: 10px;
+            margin: 22px 0 8px;
+            animation: fadeUp 0.4s ease 0.32s both;
+        }
+
+        .action-btn {
+            flex: 1;
+            height: 46px;
+            border-radius: 14px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text-muted);
+            font-family: 'Libre Franklin', sans-serif;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+
+        .action-btn:active {
+            transform: scale(0.95);
+        }
+
+        .action-btn.primary {
+            background: var(--accent);
+            color: #0E0E10;
+            border-color: var(--accent);
+            box-shadow: 0 6px 20px rgba(232, 197, 71, 0.3);
+        }
+
+        /* Animation */
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(18px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="phone">
+
+        <!-- ======== HOME PAGE ======== -->
+        <div class="page" id="home-page">
+
+            <!-- Header -->
+            <div class="header">
+                <div class="logo">Pulse<span>.</span></div>
+                <div class="header-right">
+                    <button class="icon-btn">
+                        <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
+                            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"
+                                stroke="#9999AA" stroke-width="1.8" stroke-linecap="round" />
+                        </svg>
+                        <div class="notif-dot"></div>
+                    </button>
+                    <div class="avatar-sm">D</div>
+                </div>
+            </div>
+
+            <!-- Greeting -->
+            <div class="greeting-strip">
+                <div>
+                    <h2>Good Morning</h2>
+                    <h1>Hi, David 👋</h1>
+                </div>
+                <div class="date-badge">Mon, 2 Mar</div>
+            </div>
+
+            <!-- Search -->
+            <div class="search-wrap">
+                <div class="search-box-wrap">
+                    <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
+                        <circle cx="11" cy="11" r="7" stroke="#6B6B7A" stroke-width="2" />
+                        <path d="m16.5 16.5 4 4" stroke="#6B6B7A" stroke-width="2" stroke-linecap="round" />
+                    </svg>
+                    <input type="text" class="search-box" placeholder="Search stories...">
+                </div>
+                <button class="filter-btn">
+                    <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
+                        <path d="M4 6h16M7 12h10M10 18h4" stroke="#0E0E10" stroke-width="2.2" stroke-linecap="round" />
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Categories -->
+            <div class="cats">
+                <div class="cat active">All</div>
+                <div class="cat">Politics</div>
+                <div class="cat">Tech</div>
+                <div class="cat">Climate</div>
+                <div class="cat">Business</div>
+                <div class="cat">Science</div>
+                <div class="cat">Culture</div>
+            </div>
+
+            <!-- Featured -->
+            <div class="sec-head">
+                <h3>Top Story</h3>
+                <span class="see-all">See All →</span>
+            </div>
+
+            <div class="hero-card" onclick="openDetail(0)">
+                <div class="img-wrap">
+                    <img src="https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=600&q=80" alt="AI Future">
+                    <div class="img-overlay"></div>
+                    <div class="live-badge">
+                        <div class="live-dot"></div> Breaking
+                    </div>
+                    <button class="bookmark-btn" onclick="toggleBookmark(event, this)">
+                        <svg width="15" height="15" fill="none" viewBox="0 0 24 24">
+                            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" stroke="#F0EEE8"
+                                stroke-width="1.8" fill="none" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="topic-tag">🤖 Technology</div>
+                    <div class="card-headline">The AI Revolution Is Rewriting the Rules of Every Industry</div>
+                    <div class="card-meta-row">
+                        <div class="author-row">
+                            <div class="author-av">SL</div>
+                            <div class="author-name">Sarah Lin · Reuters</div>
+                        </div>
+                        <div class="read-time">8 min read</div>
+                    </div>
+                    <div class="card-stats">
+                        <div class="stat">
+                            <svg width="13" height="13" fill="none" viewBox="0 0 24 24">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke="#6B6B7A"
+                                    stroke-width="1.8" />
+                                <circle cx="12" cy="12" r="3" stroke="#6B6B7A" stroke-width="1.8" />
+                            </svg>
+                            42K
+                        </div>
+                        <div class="stat">
+                            <svg width="13" height="13" fill="none" viewBox="0 0 24 24">
+                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" stroke="#6B6B7A"
+                                    stroke-width="1.8" />
+                            </svg>
+                            1.2K
+                        </div>
+                        <div class="stat">
+                            <svg width="13" height="13" fill="none" viewBox="0 0 24 24">
+                                <circle cx="18" cy="5" r="3" stroke="#6B6B7A" stroke-width="1.8" />
+                                <circle cx="6" cy="12" r="3" stroke="#6B6B7A" stroke-width="1.8" />
+                                <circle cx="18" cy="19" r="3" stroke="#6B6B7A" stroke-width="1.8" />
+                                <path d="m8.59 13.51 6.83 3.98M15.41 6.51l-6.82 3.98" stroke="#6B6B7A"
+                                    stroke-width="1.8" />
+                            </svg>
+                            856
+                        </div>
+                        <div class="stat" style="margin-left:auto;color:var(--text-muted);">2 hrs ago</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Trending -->
+            <div class="sec-head">
+                <h3>Trending</h3>
+                <span class="see-all">See All →</span>
+            </div>
+            <div class="mini-cards">
+                <div class="mini-card" onclick="openDetail(1)">
+                    <div class="mini-img">
+                        <img src="https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=400&q=80"
+                            alt="Climate">
+                        <div class="mini-img-overlay"></div>
+                    </div>
+                    <div class="mini-body">
+                        <div class="mini-topic">🌍 Climate</div>
+                        <div class="mini-title">Arctic Ice Hits Record Low This Winter</div>
+                        <div class="mini-time">5 hrs ago · 4 min</div>
+                    </div>
+                </div>
+                <div class="mini-card" onclick="openDetail(2)">
+                    <div class="mini-img">
+                        <img src="https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=400&q=80"
+                            alt="Markets">
+                        <div class="mini-img-overlay"></div>
+                    </div>
+                    <div class="mini-body">
+                        <div class="mini-topic" style="color:var(--accent);">📈 Business</div>
+                        <div class="mini-title">Global Markets Surge Amid Policy Shifts</div>
+                        <div class="mini-time">3 hrs ago · 3 min</div>
+                    </div>
+                </div>
+                <div class="mini-card" onclick="openDetail(3)">
+                    <div class="mini-img">
+                        <img src="https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?w=400&q=80" alt="Space">
+                        <div class="mini-img-overlay"></div>
+                    </div>
+                    <div class="mini-body">
+                        <div class="mini-topic" style="color:#C084FC;">🚀 Science</div>
+                        <div class="mini-title">NASA's New Mission Changes Space Travel Forever</div>
+                        <div class="mini-time">1 hr ago · 6 min</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Latest -->
+            <div class="sec-head">
+                <h3>Latest</h3>
+                <span class="see-all">See All →</span>
+            </div>
+            <div class="news-list">
+                <div class="news-item" onclick="openDetail(4)">
+                    <div class="news-item-img">
+                        <img src="https://images.unsplash.com/photo-1503428593586-e225b39bddfe?w=200&q=80" alt="">
+                    </div>
+                    <div class="news-item-body">
+                        <div class="ni-topic" style="color:var(--accent2);">🗳️ Politics</div>
+                        <div class="ni-title">World Leaders Convene for Emergency Climate Summit</div>
+                        <div class="ni-meta">
+                            <div class="ni-source">BBC World · James Porter</div>
+                            <div class="ni-time">1h ago</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="news-item" onclick="openDetail(5)">
+                    <div class="news-item-img">
+                        <img src="https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=200&q=80" alt="">
+                    </div>
+                    <div class="news-item-body">
+                        <div class="ni-topic" style="color:#5CE8B4;">🤖 Technology</div>
+                        <div class="ni-title">Autonomous Robots Begin Working in Major Hospitals</div>
+                        <div class="ni-meta">
+                            <div class="ni-source">Wired · Amy Chen</div>
+                            <div class="ni-time">2h ago</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="news-item" onclick="openDetail(6)">
+                    <div class="news-item-img">
+                        <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&q=80" alt="">
+                    </div>
+                    <div class="news-item-body">
+                        <div class="ni-topic" style="color:#C084FC;">🎭 Culture</div>
+                        <div class="ni-title">How Gen Z Is Redefining What It Means to Be Famous</div>
+                        <div class="ni-meta">
+                            <div class="ni-source">The Atlantic · Maya Ross</div>
+                            <div class="ni-time">4h ago</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Nav -->
+            <nav class="bottom-nav">
+                <div class="nav-item active">
+                    <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
+                        <path
+                            d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+                            stroke="#E8C547" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                    <span class="nav-lbl">Feed</span>
+                </div>
+                <div class="nav-item" onclick="switchNav(this)">
+                    <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
+                        <circle cx="11" cy="11" r="7" stroke="#6B6B7A" stroke-width="1.8" />
+                        <path d="m16.5 16.5 4 4" stroke="#6B6B7A" stroke-width="1.8" stroke-linecap="round" />
+                    </svg>
+                    <span class="nav-lbl">Search</span>
+                </div>
+                <div class="nav-item" onclick="switchNav(this)">
+                    <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14 2 9.27l6.91-1.01z"
+                            stroke="#6B6B7A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                    <span class="nav-lbl">Featured</span>
+                </div>
+                <div class="nav-item" onclick="switchNav(this)">
+                    <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
+                        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" stroke="#6B6B7A" stroke-width="1.8"
+                            stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                    <span class="nav-lbl">Saved</span>
+                </div>
+                <div class="nav-item" onclick="switchNav(this)">
+                    <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
+                        <circle cx="12" cy="8" r="3" stroke="#6B6B7A" stroke-width="1.8" />
+                        <path d="M6 20v-1a6 6 0 0 1 12 0v1" stroke="#6B6B7A" stroke-width="1.8"
+                            stroke-linecap="round" />
+                    </svg>
+                    <span class="nav-lbl">Profile</span>
+                </div>
+            </nav>
+        </div>
+
+        <!-- ======== DETAIL PAGE ======== -->
+        <div class="page hidden" id="detail-page">
+            <div class="detail-hero">
+                <img id="d-img" src="" alt="">
+                <div class="detail-hero-overlay"></div>
+                <button class="back-btn" onclick="closePage()">
+                    <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
+                        <path d="M19 12H5M12 5l-7 7 7 7" stroke="#F0EEE8" stroke-width="2" stroke-linecap="round"
+                            stroke-linejoin="round" />
+                    </svg>
+                </button>
+                <div class="detail-category" id="d-cat">🤖 Technology</div>
+                <div class="detail-title-overlay" id="d-title">The AI Revolution Is Rewriting the Rules of Every
+                    Industry</div>
+            </div>
+
+            <div class="detail-body">
+                <div class="detail-author-row">
+                    <div class="author-info">
+                        <div class="author-av-lg" id="d-av">SL</div>
+                        <div class="author-details">
+                            <div class="name" id="d-author">Sarah Lin</div>
+                            <div class="meta" id="d-source-time">Reuters · 8 min read · 2 hrs ago</div>
+                        </div>
+                    </div>
+                    <button class="follow-btn">Follow</button>
+                </div>
+
+                <div class="detail-divider"></div>
+
+                <div class="detail-text">
+                    <p class="drop-cap" id="d-body1">The landscape of modern industry is undergoing its most profound
+                        transformation since the industrial revolution. Artificial intelligence, once confined to
+                        research labs and science fiction, has now permeated every corner of the global economy — from
+                        healthcare diagnostics to supply chain logistics, from legal research to creative writing.</p>
+                </div>
+
+                <div class="quote-block" id="d-quote">"This isn't merely technological change — it's a fundamental
+                    restructuring of how human civilization organizes work, knowledge, and value."</div>
+
+                <div class="detail-text">
+                    <p id="d-body2">Experts warn that the pace of adoption is outstripping society's ability to adapt.
+                        Regulatory frameworks remain years behind, educational systems have barely begun to respond, and
+                        entire workforce segments face displacement without adequate transition support. Yet proponents
+                        argue the net effect will be overwhelmingly positive — unleashing human potential by automating
+                        the mundane.</p>
+                </div>
+
+                <div class="detail-actions">
+                    <button class="action-btn">
+                        <svg width="15" height="15" fill="none" viewBox="0 0 24 24">
+                            <circle cx="18" cy="5" r="3" stroke="currentColor" stroke-width="1.8" />
+                            <circle cx="6" cy="12" r="3" stroke="currentColor" stroke-width="1.8" />
+                            <circle cx="18" cy="19" r="3" stroke="currentColor" stroke-width="1.8" />
+                            <path d="m8.59 13.51 6.83 3.98M15.41 6.51l-6.82 3.98" stroke="currentColor"
+                                stroke-width="1.8" />
+                        </svg>
+                        Share
+                    </button>
+                    <button class="action-btn">
+                        <svg width="15" height="15" fill="none" viewBox="0 0 24 24">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+                                stroke="currentColor" stroke-width="1.8" />
+                        </svg>
+                        1.2K
+                    </button>
+                    <button class="action-btn primary">
+                        <svg width="15" height="15" fill="none" viewBox="0 0 24 24">
+                            <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" stroke="currentColor"
+                                stroke-width="1.8" />
+                        </svg>
+                        Save
+                    </button>
+                </div>
+
+                <div class="related-label">Related Stories</div>
+                <div class="related-card">
+                    <div class="related-img">
+                        <img src="https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=200&q=80" alt="">
+                    </div>
+                    <div>
+                        <div class="rel-topic">🤖 Technology</div>
+                        <div class="rel-title">Autonomous Robots Begin Working in Major Hospitals</div>
+                    </div>
+                </div>
+                <div class="related-card" style="animation-delay:0.45s;">
+                    <div class="related-img">
+                        <img src="https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?w=200&q=80" alt="">
+                    </div>
+                    <div>
+                        <div class="rel-topic" style="color:#C084FC;">🚀 Science</div>
+                        <div class="rel-title">NASA's New Mission Changes Space Travel Forever</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Nav (detail) -->
+            <nav class="bottom-nav">
+                <div class="nav-item active">
+                    <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
+                        <path
+                            d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+                            stroke="#E8C547" stroke-width="1.8" stroke-linecap="round" />
+                    </svg>
+                    <span class="nav-lbl">Feed</span>
+                </div>
+                <div class="nav-item" onclick="switchNav(this)">
+                    <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
+                        <circle cx="11" cy="11" r="7" stroke="#6B6B7A" stroke-width="1.8" />
+                        <path d="m16.5 16.5 4 4" stroke="#6B6B7A" stroke-width="1.8" stroke-linecap="round" />
+                    </svg>
+                    <span class="nav-lbl">Search</span>
+                </div>
+                <div class="nav-item" onclick="switchNav(this)">
+                    <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14 2 9.27l6.91-1.01z"
+                            stroke="#6B6B7A" stroke-width="1.8" />
+                    </svg>
+                    <span class="nav-lbl">Featured</span>
+                </div>
+                <div class="nav-item" onclick="switchNav(this)">
+                    <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
+                        <path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" stroke="#6B6B7A"
+                            stroke-width="1.8" />
+                    </svg>
+                    <span class="nav-lbl">Saved</span>
+                </div>
+                <div class="nav-item" onclick="switchNav(this)">
+                    <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
+                        <circle cx="12" cy="8" r="3" stroke="#6B6B7A" stroke-width="1.8" />
+                        <path d="M6 20v-1a6 6 0 0 1 12 0v1" stroke="#6B6B7A" stroke-width="1.8"
+                            stroke-linecap="round" />
+                    </svg>
+                    <span class="nav-lbl">Profile</span>
+                </div>
+            </nav>
+        </div>
+    </div>
+
+    <script>
+        const stories = [
+            {
+                img: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=800&q=80",
+                cat: "🤖 Technology", catColor: "#5CE8B4",
+                title: "The AI Revolution Is Rewriting the Rules of Every Industry",
+                av: "SL", author: "Sarah Lin", source: "Reuters", time: "8 min read · 2 hrs ago",
+                body1: "The landscape of modern industry is undergoing its most profound transformation since the industrial revolution. Artificial intelligence, once confined to research labs and science fiction, has now permeated every corner of the global economy — from healthcare diagnostics to supply chain logistics.",
+                quote: "\"This isn't merely technological change — it's a fundamental restructuring of how human civilization organizes work, knowledge, and value.\"",
+                body2: "Experts warn that the pace of adoption is outstripping society's ability to adapt. Regulatory frameworks remain years behind, educational systems have barely begun to respond, and entire workforce segments face displacement without adequate transition support."
+            },
+            {
+                img: "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=800&q=80",
+                cat: "🌍 Climate", catColor: "#5CE8B4",
+                title: "Arctic Ice Hits Record Low This Winter",
+                av: "KP", author: "Kai Peters", source: "Nature · 4 min read · 5 hrs ago",
+                body1: "Scientists monitoring the Arctic have recorded the lowest sea ice extent ever measured during winter months. The alarming data, compiled from satellite imagery spanning four decades, shows a decline accelerating beyond even the most pessimistic climate models from just five years ago.",
+                quote: "\"We are witnessing in real-time what textbooks will describe as the turning point in Earth's climate history.\"",
+                body2: "The implications extend far beyond the polar regions. Disrupted jet streams are already causing extreme weather events at unprecedented frequencies across North America and Europe. Agricultural cycles are shifting, water supplies are threatened, and coastal nations are accelerating their preparation for sea level rise."
+            },
+            {
+                img: "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=800&q=80",
+                cat: "📈 Business", catColor: "#E8C547",
+                title: "Global Markets Surge Amid Policy Shifts",
+                av: "MK", author: "Mark Kwon", source: "Bloomberg · 3 min read · 3 hrs ago",
+                body1: "Stock markets across Asia, Europe, and North America posted their strongest single-day gains in over a year following a coordinated signal from central banks suggesting a pivot in monetary policy. Investors responded with enthusiasm to signs that the era of aggressive rate hikes may finally be drawing to a close.",
+                quote: "\"The market reaction reflects not just relief — but a fundamental repricing of risk across asset classes.\"",
+                body2: "Technology stocks led the rally, with semiconductor companies gaining as much as 8% intraday. Meanwhile, bond yields fell sharply as capital rotated from safe-haven assets into equities. Emerging markets, long battered by dollar strength, saw their strongest inflows in eighteen months."
+            },
+            {
+                img: "https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?w=800&q=80",
+                cat: "🚀 Science", catColor: "#C084FC",
+                title: "NASA's New Mission Changes Space Travel Forever",
+                av: "AN", author: "Aisha Nkosi", source: "Space.com · 6 min read · 1 hr ago",
+                body1: "NASA has announced a groundbreaking propulsion technology that could reduce travel time to Mars from seven months to just three weeks. The system, developed in partnership with three private aerospace companies, uses a novel form of nuclear thermal propulsion that has been theorized for decades but never successfully miniaturized for practical use.",
+                quote: "\"For the first time in human history, the outer planets are within the reach of a human lifetime of exploration.\"",
+                body2: "The announcement marks a potential inflection point for humanity's expansion beyond Earth. Mission architects are already sketching plans for permanent research stations on both the Moon and Mars, with self-sustaining colonies theoretically viable within two decades using the new technology."
+            },
+            {
+                img: "https://images.unsplash.com/photo-1503428593586-e225b39bddfe?w=800&q=80",
+                cat: "🗳️ Politics", catColor: "#FF5C5C",
+                title: "World Leaders Convene for Emergency Climate Summit",
+                av: "JP", author: "James Porter", source: "BBC World · 5 min read · 1 hr ago",
+                body1: "Forty-seven heads of state gathered in Geneva for an emergency summit convened in direct response to the latest Arctic data. The meeting, organized within seventy-two hours of the record announcement, is being described as the fastest multilateral response to an environmental event in history.",
+                quote: "\"We cannot afford the luxury of deliberation. The data demands action measured in months, not years.\"",
+                body2: "Negotiators are working toward a binding framework that would accelerate existing emissions targets and introduce new financial mechanisms to support vulnerable nations. The summit is also expected to produce agreement on a controversial solar geoengineering research protocol that has previously stalled in committee."
+            },
+            {
+                img: "https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=800&q=80",
+                cat: "🤖 Technology", catColor: "#5CE8B4",
+                title: "Autonomous Robots Begin Working in Major Hospitals",
+                av: "AC", author: "Amy Chen", source: "Wired · 5 min read · 2 hrs ago",
+                body1: "Three of the world's largest hospital networks have quietly begun deploying autonomous robotic systems in patient-facing roles, marking a pivotal shift from industrial automation into high-stakes human healthcare environments. The robots handle tasks ranging from medication delivery to preliminary vital sign assessments.",
+                quote: "\"The question is no longer whether robots can do this work. It is whether we have built the governance structures to ensure they do it safely.\"",
+                body2: "Early results show a 34% reduction in medication delivery errors and a 28% improvement in nurse response times to critical patient alerts. However, patient advocacy groups are raising concerns about consent, data privacy, and the gradual erosion of human connection in healthcare settings."
+            },
+            {
+                img: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&q=80",
+                cat: "🎭 Culture", catColor: "#C084FC",
+                title: "How Gen Z Is Redefining What It Means to Be Famous",
+                av: "MR", author: "Maya Ross", source: "The Atlantic · 7 min read · 4 hrs ago",
+                body1: "The concept of celebrity is undergoing a generational transformation. For the cohort born between 1997 and 2012, fame is no longer the exclusive province of studios, record labels, or broadcast networks. It is something built in bedrooms, measured in engagement rates, and sustained through parasocial intimacy rather than carefully managed public personas.",
+                quote: "\"Gen Z doesn't want celebrities. They want people who feel like friends — imperfect, present, and real.\"",
+                body2: "This shift carries profound implications for media, marketing, and the very economics of attention. Traditional entertainment companies are scrambling to adapt as the audiences they once owned increasingly direct their loyalty toward individual creators who speak directly to niche communities with a specificity that mass media can never replicate."
+            }
+        ];
+
+        function openDetail(idx) {
+            const s = stories[idx] || stories[0];
+            document.getElementById('d-img').src = s.img;
+            document.getElementById('d-cat').textContent = s.cat;
+            document.getElementById('d-cat').style.color = s.catColor;
+            document.getElementById('d-title').textContent = s.title;
+            document.getElementById('d-av').textContent = s.av;
+            document.getElementById('d-author').textContent = s.author;
+            document.getElementById('d-source-time').textContent = s.source + ' · ' + s.time;
+            document.getElementById('d-body1').textContent = s.body1;
+            document.getElementById('d-quote').textContent = s.quote;
+            document.getElementById('d-body2').textContent = s.body2;
+
+            document.getElementById('home-page').classList.add('hidden');
+            const dp = document.getElementById('detail-page');
+            dp.classList.remove('hidden');
+            dp.scrollTop = 0;
+        }
+
+        function closePage() {
+            document.getElementById('home-page').classList.remove('hidden');
+            document.getElementById('detail-page').classList.add('hidden');
+        }
+
+        function toggleBookmark(e, btn) {
+            e.stopPropagation();
+            btn.classList.toggle('saved');
+            if (btn.classList.contains('saved')) {
+                btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" stroke="#0E0E10" stroke-width="1.8" fill="#0E0E10"/></svg>`;
+            } else {
+                btn.innerHTML = `<svg width="15" height="15" fill="none" viewBox="0 0 24 24"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" stroke="#F0EEE8" stroke-width="1.8" fill="none"/></svg>`;
+            }
+        }
+
+        function switchNav(el) {
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            el.classList.add('active');
+        }
+
+        document.querySelectorAll('.cat').forEach(c => {
+            c.addEventListener('click', () => {
+                document.querySelectorAll('.cat').forEach(x => x.classList.remove('active'));
+                c.classList.add('active');
+            });
+        });
+    </script>
+</body>
+
+</html>

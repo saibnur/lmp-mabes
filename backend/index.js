@@ -54,6 +54,8 @@ const paymentRoutes = require('./routes/paymentRoutes');
 const memberRoutes = require('./routes/memberRoutes');
 const mediaRoutes = require('./routes/mediaRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const postRoutes = require('./routes/postRoutes');
+const migrationRoutes = require('./routes/migrationRoutes');
 
 // Mount routers strictly after middleware
 app.use('/api/auth', authRoutes);
@@ -61,8 +63,10 @@ app.use('/api/payment', paymentRoutes);
 app.use('/api/members', memberRoutes);
 app.use('/api/media', mediaRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/posts', postRoutes);
+app.use('/api/admin/migrate', migrationRoutes);
 
-console.log('[Backend] All routes mounted successfully including Admin Dashboard');
+console.log('[Backend] All routes mounted successfully including Posts & Migration');
 
 // --- 4. HEALTH CHECK ---
 app.get('/health', (req, res) => {

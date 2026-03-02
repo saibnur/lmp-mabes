@@ -42,4 +42,24 @@ router.get('/sign-upload', verifyToken, (req, res) => {
     }
 });
 
+/**
+ * DELETE /api/media/asset
+ * Server-side delete of a Cloudinary asset by public_id.
+ * Used during post edit when an old image is replaced.
+ * Body: { public_id: string }
+ */
+router.delete('/asset', verifyToken, async (req, res) => {
+    try {
+        const { public_id } = req.body;
+        if (!public_id) {
+            return res.status(400).json({ success: false, message: 'public_id diperlukan' });
+        }
+        const result = await cloudinary.uploader.destroy(public_id, { invalidate: true });
+        res.json({ success: true, result });
+    } catch (error) {
+        console.error('Cloudinary delete error:', error);
+        res.status(500).json({ success: false, message: 'Gagal menghapus aset dari Cloudinary' });
+    }
+});
+
 module.exports = router;

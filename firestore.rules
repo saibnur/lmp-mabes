@@ -1,0 +1,162 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ══════════════════════════════════════════════════════════════
+    // HELPER FUNCTIONS
+    // ══════════════════════════════════════════════════════════════
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && getUserData().role == 'admin';
+    }
+
+    function getUserRegionId() {
+      let u = getUserData();
+      return u.get('kepengurusan', {}).get('region_id', '00');
+    }
+
+    function getUserRegionLevel() {
+      let u = getUserData();
+      return u.get('kepengurusan', {}).get('level', 'pusat');
+    }
+
+    // Check if the calling user's region allows reading this post
+    function canViewPost(postData) {
+      let v = postData.visibility;
+      // National posts: everyone can see
+      return v.scope == 'national'
+        // Same region
+        || v.region_id == getUserRegionId()
+        // Pusat sees everything
+        || getUserRegionLevel() == 'pusat'
+        // Ancestor (e.g. provinsi admin) seeing descendant (kab_kota) post
+        || (v.get('visible_to_ancestors', false) == true
+            && v.region_id.matches(getUserRegionId() + '.*'))
+        // Descendant seeing ancestor post
+        || (v.get('visible_to_descendants', false) == true
+            && getUserRegionId().matches(v.region_id + '.*'));
+    }
+
+    // Admin can post in their own region or anywhere if pusat
+    function canPostInRegion(regionId) {
+      let u = getUserData();
+      return u.role == 'admin'
+        && (
+          u.get('kepengurusan', {}).get('level', '') == 'pusat'
+          || u.get('kepengurusan', {}).get('region_id', '') == regionId
+        );
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    // POSTS COLLECTION
+    // ══════════════════════════════════════════════════════════════
+
+    match /posts/{postId} {
+      // READ: national published posts are public; regional posts require auth + visibility
+      allow read: if (resource.data.get('visibility', {}).get('scope', '') == 'national'
+                       && resource.data.get('status', '') == 'published')
+                  || (isAuthenticated() && canViewPost(resource.data));
+
+      // CREATE: admin only, correct region, metrics start at 0
+      allow create: if isAuthenticated()
+        && isAdmin()
+        && canPostInRegion(request.resource.data.visibility.region_id)
+        && request.resource.data.author.uid == request.auth.uid
+        && request.resource.data.metrics.like_count == 0
+        && request.resource.data.metrics.comment_count == 0;
+
+      // UPDATE: author or admin, metrics must not change (server-only)
+      allow update: if isAuthenticated()
+        && (isOwner(resource.data.author.uid) || isAdmin())
+        && request.resource.data.metrics == resource.data.metrics;
+
+      // DELETE: admins only
+      allow delete: if isAdmin();
+
+      // ── COMMENTS sub-collection ──────────────────────────────────
+      match /comments/{commentId} {
+        allow read: if isAuthenticated();
+
+        allow create: if isAuthenticated()
+          && request.resource.data.author.uid == request.auth.uid
+          && request.resource.data.body.size() > 0
+          && request.resource.data.body.size() <= 2000;
+
+        allow update: if isAuthenticated()
+          && isOwner(resource.data.author.uid)
+          && request.resource.data.author == resource.data.author
+          && request.resource.data.created_at == resource.data.created_at;
+
+        allow delete: if isOwner(resource.data.author.uid) || isAdmin();
+
+        // ── Comment likes ─────────────────────────────────────────
+        match /likes/{likeUserId} {
+          allow read: if isAuthenticated();
+          allow create: if isAuthenticated() && likeUserId == request.auth.uid;
+          allow delete: if isAuthenticated() && likeUserId == request.auth.uid;
+          allow update: if false;
+        }
+      }
+
+      // ── Post likes ────────────────────────────────────────────────
+      match /likes/{likeUserId} {
+        allow read: if isAuthenticated();
+        allow create: if isAuthenticated() && likeUserId == request.auth.uid;
+        allow delete: if isAuthenticated() && likeUserId == request.auth.uid;
+        allow update: if false;
+      }
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    // LEGACY BERITA — Read-only after migration
+    // ══════════════════════════════════════════════════════════════
+
+    match /berita/{docId} {
+      allow read: if isAuthenticated();
+      allow write: if false; // Frozen — all new writes go to "posts"
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    // USERS COLLECTION (existing, unchanged)
+    // ══════════════════════════════════════════════════════════════
+
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(userId) || isAdmin();
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    // MIGRATION AUDIT (read-only for admins)
+    // ══════════════════════════════════════════════════════════════
+
+    match /_migrations/{docId} {
+      allow read: if isAdmin();
+      allow write: if false; // Only writable by Admin SDK
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    // NOTIFICATIONS — per-user subcollection
+    // Backend Admin SDK writes; clients read/delete their own only
+    // ══════════════════════════════════════════════════════════════
+
+    match /notifications/{userId}/items/{notifId} {
+      allow read, delete: if isAuthenticated() && request.auth.uid == userId;
+      allow update: if isAuthenticated() && request.auth.uid == userId
+                    && request.resource.data.keys().hasOnly(['read']); // only allow marking read
+      allow create: if false; // server-side only
+    }
+  }
+}

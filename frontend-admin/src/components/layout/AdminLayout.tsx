@@ -4,7 +4,8 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/viewmodels/useAuth';
 import Sidebar from '@/components/layout/Sidebar';
 import BottomNav from '@/components/layout/BottomNav';
-import { Menu, Bell } from 'lucide-react';
+import { Menu } from 'lucide-react';
+import NotificationDropdown from './NotificationDropdown';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
     const { user, loading } = useAuth();
@@ -37,7 +38,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         '/dashboard/verification': 'Verifikasi KTP',
         '/dashboard/news': 'Berita & CMS',
     };
-    const title = titles[pathname] ?? 'Dashboard';
+    // Handle sub-routes dynamically
+    let title = titles[pathname] ?? 'Dashboard';
+    if (pathname.startsWith('/dashboard/news/') && pathname !== '/dashboard/news/buat') {
+        const segments = pathname.split('/');
+        if (segments.length === 5 && segments[4] !== 'edit') title = 'Detail Berita';
+        else if (pathname.includes('/edit/')) title = 'Edit Berita';
+        else if (pathname.endsWith('/buat')) title = 'Buat Berita';
+    }
 
     return (
         /* Gunakan min-h-[100dvh] agar di mobile (dengan browser chrome UI) tetap full height */
@@ -63,21 +71,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                         </button>
                         <h2 className="truncate text-base font-bold text-slate-900">{title}</h2>
                     </div>
-                    <button className="relative shrink-0 p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors">
-                        <Bell className="h-5 w-5" />
-                        <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-red-600 border-2 border-white" />
-                    </button>
+                    <div className="shrink-0">
+                        <NotificationDropdown uid={user?.uid ?? null} />
+                    </div>
                 </header>
 
-                {/* Desktop Topbar */}
                 <header className="hidden lg:flex sticky top-0 z-30 h-16 shrink-0 items-center justify-between
                                    border-b border-slate-200 bg-white px-8 shadow-sm">
                     <h2 className="text-xl font-bold text-slate-900">{title}</h2>
                     <div className="flex items-center gap-2">
-                        <button className="relative p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors">
-                            <Bell className="h-5 w-5" />
-                            <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-red-600 border-2 border-white" />
-                        </button>
+                        <NotificationDropdown uid={user?.uid ?? null} />
                     </div>
                 </header>
 

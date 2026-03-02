@@ -97,3 +97,93 @@ export interface NikCheckResult {
     isDuplicate: boolean;
     matchingMembers: Pick<Member, 'uid' | 'displayName' | 'phoneNumber' | 'no_kta'>[];
 }
+
+// ──────────────────────────────────────────────────────────────────────────────
+// News Feed Social-Media Style (posts collection, schema_version: 2)
+// ──────────────────────────────────────────────────────────────────────────────
+
+export interface PostMediaAsset {
+    url: string;
+    public_id: string;
+    width?: number | null;
+    height?: number | null;
+    type?: string;
+}
+
+export interface PostMedia {
+    header_image: PostMediaAsset;
+    inline_assets: PostMediaAsset[];
+}
+
+export interface PostAuthor {
+    uid: string;
+    display_name: string;
+    photo_url: string;
+    role: 'admin' | 'member';
+    region_id: string;
+    region_name: string;
+}
+
+export interface PostVisibility {
+    scope: 'national' | 'regional' | 'branch';
+    region_id: string;
+    region_name: string;
+    region_level: string;
+    visible_to_ancestors: boolean;
+    visible_to_descendants: boolean;
+}
+
+export interface PostMetrics {
+    like_count: number;
+    comment_count: number;
+    view_count: number;
+    share_count: number;
+}
+
+export interface PostContent {
+    html_body: string;
+    excerpt: string;
+    format: string;
+}
+
+export interface Post {
+    id?: string;
+    _schema_version: number;
+    title: string;
+    content: PostContent;
+    media: PostMedia;
+    author: PostAuthor;
+    visibility: PostVisibility;
+    category: string;
+    tags: string[];
+    status: 'draft' | 'published';
+    is_pinned: boolean;
+    metrics: PostMetrics;
+    legacy?: {
+        migrated_from: string;
+        original_doc_id: string;
+        migrated_at: any;
+    };
+    created_at: any;
+    updated_at: any;
+    published_at: any;
+}
+
+export interface PostComment {
+    id?: string;
+    author: {
+        uid: string;
+        display_name: string;
+        photo_url: string;
+        role: 'admin' | 'member';
+    };
+    body: string;
+    body_format: string;
+    parent_comment_id: string | null;
+    depth: number;
+    is_edited: boolean;
+    is_deleted: boolean;
+    like_count: number;
+    created_at: any;
+    updated_at: any;
+}

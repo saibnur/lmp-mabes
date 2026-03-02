@@ -1020,7 +1020,7 @@ export default function DaftarProfilPage() {
                 )}
             </AnimatePresence>
 
-            <Toast message={toast.message} visible={toast.show} onClose={() => setToast(t => ({ ...t, show: false }))} />
+            <Toast message={toast.message} type={toast.type} visible={toast.show} onClose={() => setToast(t => ({ ...t, show: false }))} />
         </div>
     );
 }

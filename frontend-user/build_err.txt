@@ -1,0 +1,248 @@
+﻿
+> frontend-user@0.1.0 build
+> next build
+
+node.exe : ΓÜá Warning: 
+Next.js inferred your 
+workspace root, but it may 
+not be correct.
+At line:1 char:1
++ & "C:\Program 
+Files\nodejs/node.exe" 
+"C:\Program 
+Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~
+    + CategoryInfo           
+   : NotSpecified: (ΓÜá War  
+  ning: Ne...not be correc   
+ t.:String) [], RemoteExc    
+eption
+    + FullyQualifiedErrorId  
+   : NativeCommandError
+ 
+ We detected multiple 
+lockfiles and selected the 
+directory of C:\Users\user\Do
+cuments\Proyek\package-lock.j
+son as the root directory.
+ To silence this warning, 
+set `turbopack.root` in your 
+Next.js config, or consider 
+removing one of the 
+lockfiles if it's not needed.
+   See https://nextjs.org/doc
+s/app/api-reference/config/ne
+xt-config-js/turbopack#root-d
+irectory for more 
+information.
+ Detected additional 
+lockfiles: 
+   * C:\Users\user\Documents\
+Proyek\lmp-superapp\frontend-
+user\package-lock.json
+   * C:\Users\user\Documents\
+Proyek\lmp-superapp\package-l
+ock.json
+
+Γû▓ Next.js 16.1.6 (Turbopack)
+- Environments: .env.local
+
+  Creating an optimized production build ...
+
+> Build error occurred
+Error: Turbopack build 
+failed with 2 errors:
+./lmp-superapp/frontend-user/
+src/features/berita/component
+s/PostDetail.tsx:65:5
+Module not found: Can't 
+resolve 'dompurify'
+[0m [90m 63 |[39m     
+[36mlet[39m raw 
+[33m=[39m post[33m.[39mco
+ntent[33m?[39m[33m.[39mht
+ml_body 
+[33m?[39m[33m?[39m 
+[32m''[39m[33m;[39m
+ [90m 64 |[39m     [90m// 
+Attempt DOMPurify if 
+available[39m
+[31m[1m>[22m[39m[90m 65 
+|[39m     [36mimport[39m(
+[32m'dompurify'[39m)[33m.[
+39mthen([33mDOMPurify[39m 
+[33m=>[39m {
+ [90m    |[39m     [31m[1
+m^[22m[39m[31m[1m^[22m[
+39m[31m[1m^[22m[39m[31m
+[1m^[22m[39m[31m[1m^[22m
+[39m[31m[1m^[22m[39m[31
+m[1m^[22m[39m[31m[1m^[2
+2m[39m[31m[1m^[22m[39m[
+31m[1m^[22m[39m[31m[1m^
+[22m[39m[31m[1m^[22m[39m
+[31m[1m^[22m[39m[31m[1m
+^[22m[39m[31m[1m^[22m[3
+9m[31m[1m^[22m[39m[31m[
+1m^[22m[39m[31m[1m^[22m
+[39m[31m[1m^[22m[39m
+ [90m 66 |[39m       setSan
+itizedHtml([33mDOMPurify[39
+m[33m.[39m[36mdefault[39m
+[33m.[39msanitize(raw[33m,
+[39m {
+ [90m 67 |[39m         [33
+mADD_TAGS[39m[33m:[39m [[
+32m'iframe'[39m][33m,[39m
+ [90m 68 |[39m         [33
+mADD_ATTR[39m[33m:[39m [[
+32m'allowfullscreen'[39m[33
+m,[39m [32m'frameborder'[3
+9m[33m,[39m 
+[32m'src'[39m][0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./lmp-superapp/frontend-u
+ser/src/features/berita/compo
+nents/PostDetail.tsx [Client 
+Component Browser]
+    ./lmp-superapp/frontend-u
+ser/src/app/berita/[id]/page.
+tsx [Client Component 
+Browser]
+    ./lmp-superapp/frontend-u
+ser/src/app/berita/[id]/page.
+tsx [Server Component]
+
+  Client Component SSR:
+    ./lmp-superapp/frontend-u
+ser/src/features/berita/compo
+nents/PostDetail.tsx [Client 
+Component SSR]
+    ./lmp-superapp/frontend-u
+ser/src/app/berita/[id]/page.
+tsx [Client Component SSR]
+    ./lmp-superapp/frontend-u
+ser/src/app/berita/[id]/page.
+tsx [Server Component]
+
+https://nextjs.org/docs/messa
+ges/module-not-found
+
+
+./lmp-superapp/frontend-user/
+src/features/berita/component
+s/PostDetail.tsx:67:9
+Module not found: Can't 
+resolve 'dompurify'
+[0m [90m 65 |[39m         
+[36mlet[39m raw 
+[33m=[39m post[33m.[39mco
+ntent[33m?[39m[33m.[39mht
+ml_body 
+[33m?[39m[33m?[39m 
+[32m''[39m[33m;[39m
+ [90m 66 |[39m         
+[90m// Attempt DOMPurify if 
+available[39m
+[31m[1m>[22m[39m[90m 67 
+|[39m         [36mimport[3
+9m([32m'dompurify'[39m)[33
+m.[39mthen(([33mDOMPurify[
+39m) [33m=>[39m {
+ [90m    |[39m         [31
+m[1m^[22m[39m[31m[1m^[2
+2m[39m[31m[1m^[22m[39m[
+31m[1m^[22m[39m[31m[1m^
+[22m[39m[31m[1m^[22m[39m
+[31m[1m^[22m[39m[31m[1m
+^[22m[39m[31m[1m^[22m[3
+9m[31m[1m^[22m[39m[31m[
+1m^[22m[39m[31m[1m^[22m
+[39m[31m[1m^[22m[39m[31m
+[1m^[22m[39m[31m[1m^[22
+m[39m[31m[1m^[22m[39m[3
+1m[1m^[22m[39m[31m[1m^[
+22m[39m[31m[1m^[22m[39m
+ [90m 68 |[39m             
+setSanitizedHtml([33mDOMPuri
+fy[39m[33m.[39m[36mdefaul
+t[39m[33m.[39msanitize(raw
+[33m,[39m {
+ [90m 69 |[39m             
+    [33mADD_TAGS[39m[33m:
+[39m [[32m'iframe'[39m][33
+m,[39m
+ [90m 70 |[39m             
+    [33mADD_ATTR[39m[33m:
+[39m [[32m'allowfullscreen'
+[39m[33m,[39m [32m'framebo
+rder'[39m[33m,[39m [32m's
+rc'[39m][33m,[39m[0m
+
+
+
+Import traces:
+  Client Component Browser:
+    ./lmp-superapp/frontend-u
+ser/src/features/berita/compo
+nents/PostDetail.tsx [Client 
+Component Browser]
+    ./lmp-superapp/frontend-u
+ser/src/app/berita/[id]/page.
+tsx [Client Component 
+Browser]
+    ./lmp-superapp/frontend-u
+ser/src/app/berita/[id]/page.
+tsx [Server Component]
+
+  Client Component SSR:
+    ./lmp-superapp/frontend-u
+ser/src/features/berita/compo
+nents/PostDetail.tsx [Client 
+Component SSR]
+    ./lmp-superapp/frontend-u
+ser/src/app/berita/[id]/page.
+tsx [Client Component SSR]
+    ./lmp-superapp/frontend-u
+ser/src/app/berita/[id]/page.
+tsx [Server Component]
+
+https://nextjs.org/docs/messa
+ges/module-not-found
+
+
+    at <unknown> (./lmp-super
+app/frontend-user/src/feature
+s/berita/components/PostDetai
+l.tsx:65:5)
+    at <unknown> (https://nex
+tjs.org/docs/messages/module-
+not-found)
+    at <unknown> (./lmp-super
+app/frontend-user/src/feature
+s/berita/components/PostDetai
+l.tsx:67:9)
+    at <unknown> (https://nex
+tjs.org/docs/messages/module-
+not-found)
+npm error Lifecycle script 
+`build` failed with error:
+npm error code 1
+npm error path C:\Users\user\
+Documents\Proyek\lmp-superapp
+\frontend-user
+npm error workspace 
+frontend-user@0.1.0
+npm error location C:\Users\u
+ser\Documents\Proyek\lmp-supe
+rapp\frontend-user
+npm error command failed
+npm error command 
+C:\windows\system32\cmd.exe 
+/d /s /c next build

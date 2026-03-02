@@ -3,10 +3,11 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu, X, Bell, User as UserIcon, LogOut, Settings } from 'lucide-react';
+import { Menu, User as UserIcon, LogOut, Settings } from 'lucide-react';
 import { getFirebaseAuth } from '@/lib/firebase';
 import { signOut } from 'firebase/auth';
 import { useUserProfile } from '@/store/UserProfileProvider';
+import NotificationDropdown from './NotificationDropdown';
 
 export default function GlobalNavbar({ onOpenSidebar }: { onOpenSidebar: () => void }) {
     const pathname = usePathname();
@@ -38,8 +39,8 @@ export default function GlobalNavbar({ onOpenSidebar }: { onOpenSidebar: () => v
     return (
         <header className="fixed top-0 z-50 w-full border-b border-slate-200 bg-white shadow-sm">
             <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 md:px-8 lg:px-12">
-                {/* Left: Logo */}
-                <Link href="/" className="group flex items-center gap-3">
+                {/* Left: Logo — only visible on mobile/tablet; hidden on desktop (lg+) since sidebar shows it */}
+                <Link href="/" className="group flex items-center gap-3 lg:hidden">
                     <div className="relative h-10 w-12 shrink-0 overflow-hidden rounded-lg bg-slate-100 p-1 shadow-sm transition-transform group-hover:scale-105">
                         <img
                             src="/logo-lmp.svg"
@@ -47,7 +48,7 @@ export default function GlobalNavbar({ onOpenSidebar }: { onOpenSidebar: () => v
                             className="h-full w-full object-contain"
                         />
                     </div>
-                    <span className="text-lg md:text-xl font-black tracking-tighter uppercase italic text-slate-900 hidden sm:block">
+                    <span className="text-lg font-black tracking-tighter uppercase italic text-slate-900 hidden sm:block">
                         Laskar <span className="text-red-600">Merah Putih</span>
                     </span>
                     <span className="flex flex-col text-[11px] leading-[1.1] font-black tracking-widest uppercase italic text-slate-900 sm:hidden">
@@ -55,6 +56,8 @@ export default function GlobalNavbar({ onOpenSidebar }: { onOpenSidebar: () => v
                         <span className="text-red-600">Merah Putih</span>
                     </span>
                 </Link>
+                {/* Desktop placeholder to maintain layout balance */}
+                <div className="hidden lg:block" />
 
                 {/* Right: Actions */}
                 <div className="flex items-center gap-3 md:gap-4">
@@ -77,11 +80,8 @@ export default function GlobalNavbar({ onOpenSidebar }: { onOpenSidebar: () => v
 
                     {isLoggedIn && (
                         <>
-                            {/* Notification Icon */}
-                            <button className="relative p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors">
-                                <Bell className="h-5 w-5" />
-                                <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-red-600" />
-                            </button>
+                            {/* Notification Dropdown */}
+                            <NotificationDropdown uid={profile?.uid ?? null} />
 
                             {/* User Profile Dropdown */}
                             <div className="relative" ref={dropdownRef}>

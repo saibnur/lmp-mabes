@@ -255,6 +255,14 @@ export default function EditRoleModal({ member, onClose, onSave, isUpdating }: E
         try {
             await onSave({ uid: member.uid, role, kepengurusan, organization: organizationPayload });
             console.log('✅ onSave berhasil');
+            toast.success((t) => (
+                <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold">Data member berhasil diperbarui</span>
+                    <button onClick={() => toast.dismiss(t.id)} className="p-1.5 hover:bg-emerald-100 rounded-full text-emerald-700 transition-colors ml-2">
+                        <X className="h-4 w-4" />
+                    </button>
+                </div>
+            ), { duration: 4000 });
             onClose();
         } catch (err) {
             console.error('❌ onSave error:', err);

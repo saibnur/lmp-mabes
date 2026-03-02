@@ -1,0 +1,7 @@
+npm error Lifecycle script `build` failed with error:
+npm error workspace backend@1.0.0
+npm error location C:\Users\user\Documents\Proyek\lmp-superapp\backend
+npm error Missing script: "build"
+npm error
+npm error To see a list of scripts, run:
+npm error   npm run --workspace=backend@1.0.0

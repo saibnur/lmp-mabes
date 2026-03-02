@@ -80,6 +80,26 @@ try {
   console.error('[LMP Backend] Failed to load admin routes:', err.message);
 }
 
+// Posts routes (News Feed Social-Media Style)
+let postRoutes;
+try {
+  postRoutes = require('./routes/postRoutes');
+  app.use('/api/posts', postRoutes);
+  console.log('[LMP Backend] Post routes mounted at /api/posts');
+} catch (err) {
+  console.error('[LMP Backend] Failed to load post routes:', err.message);
+}
+
+// Migration routes (one-time, admin-only)
+let migrationRoutes;
+try {
+  migrationRoutes = require('./routes/migrationRoutes');
+  app.use('/api/admin/migrate', migrationRoutes);
+  console.log('[LMP Backend] Migration routes mounted at /api/admin/migrate');
+} catch (err) {
+  console.error('[LMP Backend] Failed to load migration routes:', err.message);
+}
+
 // Health check
 app.get('/health', (req, res) => {
   res.json({

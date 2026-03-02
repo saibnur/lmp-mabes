@@ -17,9 +17,12 @@ import {
     BadgeCheck,
     Building,
     Image as ImageIcon,
-    PenSquare
+    PenSquare,
+    LogOut
 } from 'lucide-react';
 import { useUserProfile } from '@/store/UserProfileProvider';
+import { getFirebaseAuth } from '@/lib/firebase';
+import { signOut } from 'firebase/auth';
 
 interface GlobalSidebarProps {
     isOpen: boolean; // For mobile drawer
@@ -29,6 +32,12 @@ interface GlobalSidebarProps {
 export default function GlobalSidebar({ isOpen, onClose }: GlobalSidebarProps) {
     const pathname = usePathname();
     const { profile, loading } = useUserProfile();
+
+    const handleLogout = async () => {
+        const auth = getFirebaseAuth();
+        await signOut(auth);
+        window.location.href = '/';
+    };
 
     // Prevent scrolling when mobile drawer is open
     useEffect(() => {
@@ -164,6 +173,17 @@ export default function GlobalSidebar({ isOpen, onClose }: GlobalSidebarProps) {
                     </div>
                 ))}
             </nav>
+
+            {/* Bottom: Logout */}
+            <div className="border-t border-slate-800 p-4 pb-6">
+                <button
+                    onClick={handleLogout}
+                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-red-600 p-3 text-sm font-black text-white hover:bg-red-700 transition active:scale-95 shadow-lg shadow-red-900/20"
+                >
+                    <LogOut className="h-4 w-4" />
+                    KELUAR / LOGOUT
+                </button>
+            </div>
         </div>
     );
 
