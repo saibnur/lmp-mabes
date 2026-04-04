@@ -37,6 +37,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         '/dashboard/members': 'Data Member',
         '/dashboard/verification': 'Verifikasi KTP',
         '/dashboard/news': 'Berita & CMS',
+        '/dashboard/pembayaran-manual': 'Pembayaran Manual',
     };
     // Handle sub-routes dynamically
     let title = titles[pathname] ?? 'Dashboard';

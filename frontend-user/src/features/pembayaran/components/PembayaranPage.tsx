@@ -5,17 +5,23 @@ import { useRouter } from 'next/navigation';
 import {
   CheckCircle2, X, ArrowRight, ShieldCheck, Scale, Network,
   GraduationCap, Shirt, TrendingUp, LayoutGrid, Loader2,
-  Calendar, CreditCard, Minus, BadgeCheck
+  Minus
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { paymentApi } from '@/lib/api';
 import { getFirebaseAuth, getFirestoreDb } from '@/lib/firebase';
 import Toast from '@/app/components/Toast';
 import { doc, onSnapshot } from 'firebase/firestore';
+import ManualPaymentCard from './ManualPaymentCard';
 
 declare global {
   interface Window { snap: any; }
 }
+
+// ─── Feature Flag ─────────────────────────────────────────────────────────────
+// Untuk beralih ke Midtrans: set NEXT_PUBLIC_PAYMENT_MODE=midtrans di .env.local
+const PAYMENT_MODE = process.env.NEXT_PUBLIC_PAYMENT_MODE || 'midtrans';
+const isManualMode = PAYMENT_MODE === 'manual';
 
 const features = [
   { name: 'Akses Informasi Publik', non: true, member: true, icon: LayoutGrid },
@@ -53,17 +59,20 @@ export default function PembayaranPage() {
       }
     });
 
-    const snapUrl = process.env.NEXT_PUBLIC_MIDTRANS_SNAP_URL || 'https://app.sandbox.midtrans.com/snap/snap.js';
-    const clientKey = process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY || '';
-    if (!document.querySelector(`script[src="${snapUrl}"]`)) {
-      const s = document.createElement('script');
-      s.src = snapUrl;
-      s.setAttribute('data-client-key', clientKey);
-      s.async = true;
-      s.onload = () => setIsSnapReady(true);
-      document.body.appendChild(s);
-    } else {
-      setIsSnapReady(true);
+    // Muat Midtrans snap.js HANYA jika mode midtrans
+    if (!isManualMode) {
+      const snapUrl = process.env.NEXT_PUBLIC_MIDTRANS_SNAP_URL || 'https://app.sandbox.midtrans.com/snap/snap.js';
+      const clientKey = process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY || '';
+      if (!document.querySelector(`script[src="${snapUrl}"]`)) {
+        const s = document.createElement('script');
+        s.src = snapUrl;
+        s.setAttribute('data-client-key', clientKey);
+        s.async = true;
+        s.onload = () => setIsSnapReady(true);
+        document.body.appendChild(s);
+      } else {
+        setIsSnapReady(true);
+      }
     }
 
     return () => { unsubAuth(); unsubSnap?.(); };
@@ -112,13 +121,7 @@ export default function PembayaranPage() {
         window.snap.pay(data.token, {
           onSuccess: async () => {
             setToast({ show: true, message: 'Pembayaran berhasil! Mengubah status...', type: 'success' });
-            // Always update client-side status to trigger instant UI reflect
-            // We ignore process.env.NODE_ENV because Firestore security rules currently allow this,
-            // bridging the gap while waiting for the webhook. Webhook will still process KTA.
             await updateStatusManual();
-
-            // At this point, the onSnapshot listener will catch the "active" status
-            // and trigger the auto-redirect defined in useEffect previously.
           },
           onPending: () => setToast({ show: true, message: 'Menunggu konfirmasi pembayaran...', type: 'success' }),
           onError: () => setToast({ show: true, message: 'Pembayaran gagal. Coba lagi.', type: 'error' }),
@@ -203,8 +206,8 @@ export default function PembayaranPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-center">
                     <div className="bg-slate-50 rounded-xl p-2">
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Non-Member</p>
-                      {typeof f.non === 'boolean' ? (
+                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Non-Member</p>
+                       {typeof f.non === 'boolean' ? (
                         f.non
                           ? <CheckCircle2 className="w-5 h-5 text-slate-600 mx-auto" />
                           : <X className="w-5 h-5 text-slate-300 mx-auto" />
@@ -266,58 +269,57 @@ export default function PembayaranPage() {
             transition={{ delay: 0.15 }}
             className="lg:sticky lg:top-24"
           >
-            <div className="bg-white border-2 border-slate-900 rounded-3xl p-6 md:p-8 shadow-xl relative overflow-hidden">
-              {/* Decorative circle */}
-              <div className="absolute top-0 right-0 w-24 h-24 bg-red-600 rounded-full -mr-10 -mt-10 opacity-90" />
-              <div className="absolute top-0 right-0 w-14 h-14 bg-red-400 rounded-full -mr-3 -mt-3 opacity-40" />
+            {isManualMode ? (
+              <ManualPaymentCard isRenewal={isRenewal} />
+            ) : (
+              <div className="bg-white border-2 border-slate-900 rounded-3xl p-6 md:p-8 shadow-xl relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-red-600 rounded-full -mr-10 -mt-10 opacity-90" />
+                <div className="absolute top-0 right-0 w-14 h-14 bg-red-400 rounded-full -mr-3 -mt-3 opacity-40" />
 
-              <div className="relative">
-                {/* Badge */}
-                <div className="inline-flex items-center gap-2 bg-slate-900 text-white px-3 py-1.5 rounded-xl text-xs font-bold mb-6">
-                  <ShieldCheck className="w-3.5 h-3.5 text-red-400" />
-                  Kader Resmi LMP
+                <div className="relative">
+                  <div className="inline-flex items-center gap-2 bg-slate-900 text-white px-3 py-1.5 rounded-xl text-xs font-bold mb-6">
+                    <ShieldCheck className="w-3.5 h-3.5 text-red-400" />
+                    Kader Resmi LMP
+                  </div>
+
+                  <h2 className="text-xl md:text-2xl font-bold text-slate-900 mb-1">
+                    {isRenewal ? 'Perpanjang' : 'Upgrade'} Sekarang
+                  </h2>
+                  <p className="text-slate-500 text-sm mb-6">
+                    Iuran satu kali untuk akses penuh selama <strong>2 tahun</strong>.
+                  </p>
+
+                  <div className="flex items-baseline gap-2 mb-6 bg-slate-50 rounded-2xl px-5 py-4 border border-slate-100">
+                    <span className="text-4xl font-extrabold text-slate-900">Rp 25.000</span>
+                    <span className="text-sm text-slate-400 font-semibold">/ 2 Tahun</span>
+                  </div>
+
+                  <ul className="space-y-2.5 mb-8">
+                    {['KTA Digital Resmi', 'Akses Diklat Kader', 'Jejaring 38 Provinsi', 'Bantuan Hukum Prioritas'].map((item) => (
+                      <li key={item} className="flex items-center gap-2.5 text-sm text-slate-700">
+                        <CheckCircle2 className="w-4 h-4 text-red-600 shrink-0" />
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+
+                  <button
+                    onClick={handleUpgrade}
+                    disabled={loading || !isSnapReady}
+                    className="w-full flex items-center justify-center gap-2 rounded-2xl bg-red-600 px-6 py-4 font-bold text-base text-white transition hover:bg-red-700 active:scale-95 disabled:opacity-60 shadow-lg shadow-red-200"
+                  >
+                    {loading
+                      ? <Loader2 className="w-5 h-5 animate-spin" />
+                      : <>{isRenewal ? 'Perpanjang' : 'Upgrade'} Sekarang <ArrowRight className="w-5 h-5" /></>
+                    }
+                  </button>
+
+                  <p className="mt-4 text-center text-[11px] text-slate-400">
+                    Aman & terenkripsi via <span className="font-bold text-slate-600">Midtrans</span>
+                  </p>
                 </div>
-
-                <h2 className="text-xl md:text-2xl font-bold text-slate-900 mb-1">
-                  {isRenewal ? 'Perpanjang' : 'Upgrade'} Sekarang
-                </h2>
-                <p className="text-slate-500 text-sm mb-6">
-                  Iuran satu kali untuk akses penuh selama <strong>2 tahun</strong>.
-                </p>
-
-                {/* Price */}
-                <div className="flex items-baseline gap-2 mb-6 bg-slate-50 rounded-2xl px-5 py-4 border border-slate-100">
-                  <span className="text-4xl font-extrabold text-slate-900">Rp 25.000</span>
-                  <span className="text-sm text-slate-400 font-semibold">/ 2 Tahun</span>
-                </div>
-
-                {/* Checklist */}
-                <ul className="space-y-2.5 mb-8">
-                  {['KTA Digital Resmi', 'Akses Diklat Kader', 'Jejaring 38 Provinsi', 'Bantuan Hukum Prioritas'].map((item) => (
-                    <li key={item} className="flex items-center gap-2.5 text-sm text-slate-700">
-                      <CheckCircle2 className="w-4 h-4 text-red-600 shrink-0" />
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-
-                {/* CTA Button */}
-                <button
-                  onClick={handleUpgrade}
-                  disabled={loading || !isSnapReady}
-                  className="w-full flex items-center justify-center gap-2 rounded-2xl bg-red-600 px-6 py-4 font-bold text-base text-white transition hover:bg-red-700 active:scale-95 disabled:opacity-60 shadow-lg shadow-red-200"
-                >
-                  {loading
-                    ? <Loader2 className="w-5 h-5 animate-spin" />
-                    : <>{isRenewal ? 'Perpanjang' : 'Upgrade'} Sekarang <ArrowRight className="w-5 h-5" /></>
-                  }
-                </button>
-
-                <p className="mt-4 text-center text-[11px] text-slate-400">
-                  Aman & terenkripsi via <span className="font-bold text-slate-600">Midtrans</span>
-                </p>
               </div>
-            </div>
+            )}
           </motion.div>
         </div>
       </div>

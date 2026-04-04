@@ -2,13 +2,19 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Users, ShieldCheck, Newspaper, Plus } from 'lucide-react';
+import { Home, Users, ShieldCheck, Newspaper, Plus, Building2 } from 'lucide-react';
+
+// ─── Feature Flag ─────────────────────────────────────────────────────────────
+const PAYMENT_MODE = process.env.NEXT_PUBLIC_PAYMENT_MODE || 'midtrans';
 
 const NAV_ITEMS = [
     { href: '/dashboard', label: 'Home', icon: Home },
     { href: '/dashboard/members', label: 'Member', icon: Users },
     { href: '/dashboard/verification', label: 'Verif KTP', icon: ShieldCheck },
     { href: '/dashboard/news', label: 'Berita', icon: Newspaper },
+    ...(PAYMENT_MODE === 'manual'
+        ? [{ href: '/dashboard/pembayaran-manual', label: 'Bayar', icon: Building2 }]
+        : []),
 ];
 
 /**

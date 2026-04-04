@@ -1,37 +1,30 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Newspaper, ArrowRight } from 'lucide-react';
-
-const news = [
-  {
-    id: 1,
-    title: 'LMP Gelar Bakti Sosial di Daerah Terpencil',
-    date: '12 Februari 2025',
-    snippet:
-      'Kegiatan bakti sosial melibatkan puluhan relawan dan bantuan sembako untuk warga.',
-    image: null,
-  },
-  {
-    id: 2,
-    title: 'Peluncuran KTA Digital untuk Seluruh Anggota',
-    date: '8 Februari 2025',
-    snippet:
-      'Kartu Tanda Anggota digital resmi diluncurkan untuk memudahkan verifikasi.',
-    image: null,
-  },
-  {
-    id: 3,
-    title: 'Kerja Sama LMP dengan Kementerian Terkait',
-    date: '1 Februari 2025',
-    snippet:
-      'Penandatanganan MoU untuk program pemberdayaan masyarakat dan UKM.',
-    image: null,
-  },
-];
+import { getTrendingPosts } from '@/lib/postService';
+import type { Post } from '@/lib/types';
 
 export default function News() {
+  const [news, setNews] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadNews() {
+      try {
+        const posts = await getTrendingPosts(3);
+        setNews(posts);
+      } catch (error) {
+        console.error('Failed to load news:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadNews();
+  }, []);
+
   return (
     <section id="berita" className="bg-white py-24 sm:py-32">
       <div className="mx-auto max-w-7xl px-4 md:px-8">
@@ -50,7 +43,7 @@ export default function News() {
             </p>
           </div>
           <Link
-            href="#"
+            href="/berita"
             className="inline-flex items-center gap-2 rounded-xl border-2 border-red-600 px-5 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-50"
           >
             Lihat Semua Berita
@@ -64,33 +57,65 @@ export default function News() {
           viewport={{ once: true, margin: '-40px' }}
           className="mt-12 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3"
         >
-          {news.map((item, i) => (
-            <article
-              key={item.id}
-              className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md"
-            >
-              <div className="flex h-44 items-center justify-center bg-slate-100">
-                {item.image ? (
-                  <img
-                    src={item.image}
-                    alt=""
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <Newspaper className="h-12 w-12 text-slate-400" />
-                )}
+          {loading ? (
+            // Skeleton Loader
+            [1, 2, 3].map((i) => (
+              <div key={i} className="animate-pulse overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                <div className="h-44 bg-slate-200" />
+                <div className="p-5">
+                  <div className="h-4 w-24 bg-slate-200 rounded mb-2" />
+                  <div className="h-6 w-full bg-slate-200 rounded mb-2" />
+                  <div className="h-4 w-3/4 bg-slate-200 rounded" />
+                </div>
               </div>
-              <div className="p-5">
-                <time className="text-sm text-slate-500">{item.date}</time>
-                <h3 className="mt-2 text-lg font-bold text-slate-900 line-clamp-2">
-                  {item.title}
-                </h3>
-                <p className="mt-2 text-sm text-slate-600 line-clamp-2">
-                  {item.snippet}
-                </p>
-              </div>
-            </article>
-          ))}
+            ))
+          ) : news.length > 0 ? (
+            news.map((item) => {
+              const epoch = item.published_at?._seconds || item.published_at?.seconds || item.created_at?._seconds || item.created_at?.seconds;
+              const dateStr = epoch
+                ? new Date(epoch * 1000).toLocaleDateString('id-ID', {
+                  day: 'numeric',
+                  month: 'long',
+                  year: 'numeric'
+                })
+                : 'Tanggal Tidak Diketahui';
+
+              return (
+                <Link
+                  href={`/berita/${item.id}`}
+                  key={item.id}
+                  className="group overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md block"
+                >
+                  <div className="flex h-44 items-center justify-center bg-slate-100 overflow-hidden relative">
+                    {item.media?.header_image?.url ? (
+                      <img
+                        src={item.media.header_image.url}
+                        alt={item.title || 'Berita'}
+                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      />
+                    ) : (
+                      <Newspaper className="h-12 w-12 text-slate-400" />
+                    )}
+                  </div>
+                  <div className="p-5">
+                    <time className="text-sm font-medium text-red-600">{dateStr}</time>
+                    <h3 className="mt-2 text-lg font-bold text-slate-900 line-clamp-2 group-hover:text-red-600 transition-colors">
+                      {item.title}
+                    </h3>
+                    <p className="mt-2 text-sm text-slate-600 line-clamp-2">
+                      {item.content?.excerpt || 'Tidak ada ringkasan.'}
+                    </p>
+                  </div>
+                </Link>
+              );
+            })
+          ) : (
+            <div className="col-span-full py-12 text-center">
+              <Newspaper className="mx-auto h-12 w-12 text-slate-300" />
+              <h3 className="mt-4 text-lg font-bold text-slate-900">Belum Ada Berita</h3>
+              <p className="mt-2 text-slate-500">Berita terbaru akan segera hadir.</p>
+            </div>
+          )}
         </motion.div>
       </div>
     </section>

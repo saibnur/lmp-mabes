@@ -21,10 +21,10 @@ import { signOut } from 'firebase/auth';
 
 export default function GlobalBottomNav() {
     const pathname = usePathname();
-    const { profile, loading } = useUserProfile();
+    const { profile, uid, loading } = useUserProfile();
     const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
-    const isLoggedIn = !loading && !!profile;
+    const isLoggedIn = !loading && !!uid;
     const isProfileComplete = profile?.profileComplete === true;
     const isPaid = profile?.isPaid === true || profile?.membershipStatus === 'active';
 

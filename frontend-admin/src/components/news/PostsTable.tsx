@@ -3,6 +3,7 @@
 import { Pencil, Trash2, Heart, MessageSquare, Pin, Globe, MapPin, Eye } from 'lucide-react';
 import type { Post } from '@/models/member.types';
 import Link from 'next/link';
+import { Calendar } from 'lucide-react';
 
 interface PostsTableProps {
     posts: Post[];
@@ -26,6 +27,29 @@ function MetricBadge({ icon, value, label }: { icon: React.ReactNode; value: num
             {value.toLocaleString('id-ID')}
         </span>
     );
+}
+
+function parseTimestamp(ts: any): Date | null {
+    if (!ts) return null;
+    if (typeof ts?.toDate === 'function') return ts.toDate();
+    if (typeof ts === 'object' && ts._seconds != null) return new Date(ts._seconds * 1000);
+    let d = new Date(ts);
+    if (isNaN(d.getTime()) && typeof ts === 'string') {
+        d = new Date(ts.replace(' ', 'T'));
+    }
+    return isNaN(d.getTime()) ? null : d;
+}
+
+function formatDisplayDate(timestamp: any): string {
+    const date = parseTimestamp(timestamp);
+    if (!date) return '—';
+    return date.toLocaleDateString('id-ID', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
 }
 
 export default function PostsTable({ posts, isLoading, onDelete, isDeleting }: PostsTableProps) {
@@ -118,6 +142,9 @@ export default function PostsTable({ posts, isLoading, onDelete, isDeleting }: P
                                             </span>
                                         )}
                                         <span className="text-[10px] text-text-muted/60">{authorName}</span>
+                                        <span className="inline-flex items-center gap-1 text-[10px] text-text-muted/60">
+                                            <Calendar className="h-3 w-3" /> {formatDisplayDate(item.published_at || item.created_at)}
+                                        </span>
                                         {/* Engagement metrics */}
                                         <span className="hidden sm:flex items-center gap-2">
                                             <MetricBadge icon={<Eye className="h-3 w-3" />} value={metrics.view_count} label="Dilihat" />
@@ -138,7 +165,7 @@ export default function PostsTable({ posts, isLoading, onDelete, isDeleting }: P
                                     </Link>
                                     <Link
                                         href={`/dashboard/news/edit/${item.id}`}
-                                        className="rounded-xl p-2 text-text-muted transition-all hover:bg-brand-primary/10 hover:text-brand-primary"
+                                        className="rounded-xl p-2 text-text-muted transition-all hover:bg-slate-900 hover:text-white"
                                         title="Edit"
                                     >
                                         <Pencil className="h-4 w-4" />

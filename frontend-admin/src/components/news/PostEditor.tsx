@@ -297,7 +297,7 @@ export default function PostEditor({ initialPost, mode }: PostEditorProps) {
                                 onClick={() => setScope('national')}
                                 className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold border transition-all
                                     ${scope === 'national'
-                                        ? 'bg-brand-primary text-white border-brand-primary shadow-sm'
+                                        ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
                                         : 'border-border-custom text-text-muted hover:bg-surface-hover'}`}
                             >
                                 <Globe className="h-3.5 w-3.5" /> Nasional
@@ -307,7 +307,7 @@ export default function PostEditor({ initialPost, mode }: PostEditorProps) {
                                 onClick={() => setScope('regional')}
                                 className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold border transition-all
                                     ${scope === 'regional'
-                                        ? 'bg-brand-primary text-white border-brand-primary shadow-sm'
+                                        ? 'bg-slate-900 text-white border-slate-900 shadow-sm'
                                         : 'border-border-custom text-text-muted hover:bg-surface-hover'}`}
                             >
                                 <MapPin className="h-3.5 w-3.5" /> Regional (Wilayah Saya)
@@ -341,7 +341,7 @@ export default function PostEditor({ initialPost, mode }: PostEditorProps) {
                         {tags.map((t) => (
                             <span
                                 key={t}
-                                className="inline-flex items-center gap-1.5 bg-brand-primary/10 text-brand-primary
+                                className="inline-flex items-center gap-1.5 bg-slate-900 text-white
                                            text-xs font-bold px-3 py-1 rounded-full"
                             >
                                 <Tag className="h-3 w-3" />
@@ -414,7 +414,7 @@ export default function PostEditor({ initialPost, mode }: PostEditorProps) {
                         type="button"
                         onClick={() => handleSubmit('published')}
                         disabled={isSubmitting}
-                        className="px-8 py-3 rounded-xl text-sm font-bold text-white bg-brand-primary
+                        className="px-8 py-3 rounded-xl text-sm font-bold text-white bg-red-600
                                    hover:bg-red-700 transition-all shadow-md shadow-brand-primary/20
                                    disabled:opacity-50 flex items-center gap-2"
                     >

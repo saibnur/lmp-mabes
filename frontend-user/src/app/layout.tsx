@@ -10,6 +10,7 @@ const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
   display: "swap",
+  preload: false, // Prevents console warning on pages that don't use sans font
 });
 
 const geistMono = Geist_Mono({

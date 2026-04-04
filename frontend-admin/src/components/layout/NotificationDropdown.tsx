@@ -11,9 +11,25 @@ interface Props {
 
 function parseTimestamp(ts: any): Date | null {
     if (!ts) return null;
+
+    // 1. Firebase SDK Timestamp
     if (typeof ts?.toDate === 'function') return ts.toDate();
-    if (typeof ts === 'object' && ts._seconds != null) return new Date(ts._seconds * 1000);
-    const d = new Date(ts); return isNaN(d.getTime()) ? null : d;
+
+    // 2. REST API Timestamp Object
+    if (typeof ts === 'object' && ts._seconds != null) {
+        return new Date(ts._seconds * 1000);
+    }
+
+    // 3. String atau Number
+    let d = new Date(ts);
+
+    // Jika gagal parsing dan inputnya String, coba bersihkan spasi standar SQL
+    if (isNaN(d.getTime()) && typeof ts === 'string') {
+        const sqlFormat = ts.replace(' ', 'T');
+        d = new Date(sqlFormat);
+    }
+
+    return isNaN(d.getTime()) ? null : d;
 }
 
 function timeAgo(ts: any): string {

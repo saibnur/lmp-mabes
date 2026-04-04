@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
@@ -10,15 +11,22 @@ import {
     Newspaper,
     LogOut,
     X,
+    Building2,
 } from 'lucide-react';
 import { useAuth } from '@/viewmodels/useAuth';
-import { useEffect } from 'react';
+import { adminPaymentService } from '@/services/adminPaymentService';
+
+// ─── Feature Flag ────────────────────────────────────────────────────────────
+const PAYMENT_MODE = process.env.NEXT_PUBLIC_PAYMENT_MODE || 'midtrans';
 
 const NAV_ITEMS = [
     { href: '/dashboard', label: 'Home', icon: LayoutDashboard },
     { href: '/dashboard/members', label: 'Data Member', icon: Users },
     { href: '/dashboard/verification', label: 'Verifikasi KTP', icon: ShieldCheck },
     { href: '/dashboard/news', label: 'Berita & CMS', icon: Newspaper },
+    ...(PAYMENT_MODE === 'manual'
+        ? [{ href: '/dashboard/pembayaran-manual', label: 'Pembayaran Manual', icon: Building2 }]
+        : []),
 ];
 
 interface SidebarProps {
@@ -28,7 +36,22 @@ interface SidebarProps {
 
 export default function Sidebar({ open, onClose }: SidebarProps) {
     const pathname = usePathname();
-    const { logout } = useAuth();
+    const { logout, user } = useAuth();
+    const [pendingCount, setPendingCount] = useState(0);
+
+    // Fetch pending payment count for badge
+    const fetchPendingCount = useCallback(async () => {
+        if (PAYMENT_MODE !== 'manual' || !user) return;
+        try {
+            const token = await user.getIdToken();
+            const count = await adminPaymentService.getPendingCount(token);
+            setPendingCount(count);
+        } catch {
+            // Silently fail — badge just won't show
+        }
+    }, [user]);
+
+    useEffect(() => { fetchPendingCount(); }, [fetchPendingCount]);
 
     useEffect(() => {
         if (open) {
@@ -84,6 +107,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
                                     ? pathname === '/dashboard'
                                     : pathname.startsWith(item.href);
                             const Icon = item.icon;
+                            const showBadge = item.href === '/dashboard/pembayaran-manual' && pendingCount > 0;
                             return (
                                 <li key={item.href}>
                                     <Link
@@ -98,6 +122,11 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
                                             <Icon className={`h-5 w-5 shrink-0 transition-colors ${isActive ? 'text-white' : 'group-hover:text-red-500'}`} />
                                             {item.label}
                                         </div>
+                                        {showBadge && (
+                                            <span className="inline-flex items-center justify-center min-w-[1.2rem] h-5 px-1 rounded-full bg-amber-400 text-slate-900 text-[10px] font-black">
+                                                {pendingCount > 99 ? '99+' : pendingCount}
+                                            </span>
+                                        )}
                                     </Link>
                                 </li>
                             );

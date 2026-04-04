@@ -87,7 +87,7 @@ export default function DashboardMemberPage() {
                 </div>
                 <div>
                   <p className="text-slate-500 font-medium max-w-md">
-                    Bayar iuran <span className="text-red-600 font-bold">Rp25.000 / 2 Tahun</span> via Midtrans untuk mengaktifkan status kader resmi dan akses penuh dashboard.
+                    Bayar iuran <span className="text-red-600 font-bold">Rp25.000 / 2 Tahun</span> via <span className="font-bold">Transfer Bank Manual BRI</span> untuk mengaktifkan status kader resmi dan akses penuh dashboard.
                   </p>
                   <Link href="/dashboard/pembayaran">
                     <button className="mt-6 flex items-center gap-2 rounded-2xl bg-red-600 px-8 py-4 font-black text-white transition hover:bg-slate-900 hover:shadow-2xl active:scale-95">

@@ -96,7 +96,7 @@ export default function RegionFilter({
                     </span>
                     {activeCount > 0 && (
                         <span className="flex h-5 w-5 items-center justify-center rounded-full
-                                         bg-brand-primary text-[10px] font-black text-white">
+                                         bg-slate-900 text-[10px] font-black text-white">
                             {activeCount}
                         </span>
                     )}

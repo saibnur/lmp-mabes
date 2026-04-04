@@ -25,11 +25,28 @@ function cloudinaryOptimized(url: string, width = 400): string {
 
 function parseTimestamp(ts: any): Date | null {
     if (!ts) return null;
+
+    // 1. Firebase SDK Timestamp
     if (typeof ts?.toDate === 'function') return ts.toDate();
-    if (typeof ts === 'object' && ts._seconds != null) return new Date(ts._seconds * 1000);
-    const d = new Date(ts);
+
+    // 2. REST API Timestamp Object
+    if (typeof ts === 'object' && ts._seconds != null) {
+        return new Date(ts._seconds * 1000);
+    }
+
+    // 3. String atau Number
+    let d = new Date(ts);
+
+    // Jika gagal parsing dan inputnya String, coba bersihkan spasi standar SQL
+    if (isNaN(d.getTime()) && typeof ts === 'string') {
+        // Hanya lakukan konversi T jika formatnya terlihat seperti YYYY-MM-DD HH:MM:SS
+        const sqlFormat = ts.replace(' ', 'T');
+        d = new Date(sqlFormat);
+    }
+
     return isNaN(d.getTime()) ? null : d;
 }
+
 
 function formatRelativeDate(timestamp: any): string {
     const date = parseTimestamp(timestamp);
@@ -59,6 +76,7 @@ export default function MiniPostCard({ post }: MiniPostCardProps) {
         : null;
     const catColor = CATEGORY_COLORS[post.category?.toLowerCase()] ?? 'text-red-500';
     const viewCount = post.metrics?.view_count ?? 0;
+    console.log("Debug Post Date:", post.id, post.created_at);
 
     return (
         <Link

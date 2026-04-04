@@ -21,9 +21,20 @@ function cloudinaryOptimized(url: string, width = 1200): string {
     return url.replace('/upload/', `/upload/w_${width},c_scale,q_auto,f_auto/`);
 }
 
+function parseTimestamp(ts: any): Date | null {
+    if (!ts) return null;
+    if (typeof ts?.toDate === 'function') return ts.toDate();
+    if (typeof ts === 'object' && ts._seconds != null) return new Date(ts._seconds * 1000);
+    let d = new Date(ts);
+    if (isNaN(d.getTime()) && typeof ts === 'string') {
+        d = new Date(ts.replace(' ', 'T'));
+    }
+    return isNaN(d.getTime()) ? null : d;
+}
+
 function formatDate(ts: any) {
-    if (!ts) return '';
-    const d = ts?.toDate ? ts.toDate() : new Date(ts);
+    const d = parseTimestamp(ts);
+    if (!d) return '';
     return d.toLocaleDateString('id-ID', {
         weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
     });
@@ -116,7 +127,7 @@ export default function AdminNewsDetailPage({ params }: { params: Promise<{ id: 
                     )}
                     <Link
                         href={`/dashboard/news/edit/${id}`}
-                        className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-brand-primary text-white text-sm font-bold hover:bg-red-700 transition shadow-sm shadow-red-200"
+                        className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-red-600 text-white text-sm font-bold hover:bg-red-700 transition shadow-sm shadow-red-200"
                     >
                         <Pencil className="h-4 w-4" />
                         Edit Post
@@ -143,7 +154,7 @@ export default function AdminNewsDetailPage({ params }: { params: Promise<{ id: 
                 <div className="p-6 md:p-8">
                     {/* Metadata row */}
                     <div className="flex flex-wrap items-center gap-2 mb-4">
-                        <span className="bg-brand-primary/10 text-brand-primary px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider flex items-center gap-1">
+                        <span className="bg-red-600 text-white px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider flex items-center gap-1">
                             <Tag className="h-3 w-3" /> {post.category}
                         </span>
                         {isNational ? (
@@ -230,7 +241,7 @@ export default function AdminNewsDetailPage({ params }: { params: Promise<{ id: 
                     <div className="mt-8 pt-6 border-t border-border-custom/50 flex items-center gap-3">
                         <Link
                             href={`/dashboard/news/edit/${id}`}
-                            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand-primary text-white text-sm font-bold hover:bg-red-700 transition shadow-sm"
+                            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-red-500 text-white text-sm font-bold hover:bg-red-600 transition shadow-sm"
                         >
                             <Pencil className="h-4 w-4" />
                             Edit Post Ini

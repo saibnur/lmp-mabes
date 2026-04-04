@@ -31,7 +31,7 @@ interface GlobalSidebarProps {
 
 export default function GlobalSidebar({ isOpen, onClose }: GlobalSidebarProps) {
     const pathname = usePathname();
-    const { profile, loading } = useUserProfile();
+    const { profile, uid, loading } = useUserProfile();
 
     const handleLogout = async () => {
         const auth = getFirebaseAuth();
@@ -51,7 +51,7 @@ export default function GlobalSidebar({ isOpen, onClose }: GlobalSidebarProps) {
         };
     }, [isOpen]);
 
-    const isLoggedIn = !loading && !!profile;
+    const isLoggedIn = !loading && !!uid;
 
     // Don't render sidebar items for non-logged in users (or you could render a public version)
     // But usually Sidebar is for Members. If not logged in, we only show public links.
@@ -175,15 +175,17 @@ export default function GlobalSidebar({ isOpen, onClose }: GlobalSidebarProps) {
             </nav>
 
             {/* Bottom: Logout */}
-            <div className="border-t border-slate-800 p-4 pb-6">
-                <button
-                    onClick={handleLogout}
-                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-red-600 p-3 text-sm font-black text-white hover:bg-red-700 transition active:scale-95 shadow-lg shadow-red-900/20"
-                >
-                    <LogOut className="h-4 w-4" />
-                    KELUAR / LOGOUT
-                </button>
-            </div>
+            {isLoggedIn && (
+                <div className="border-t border-slate-800 p-4 pb-6">
+                    <button
+                        onClick={handleLogout}
+                        className="flex w-full items-center justify-center gap-2 rounded-xl bg-red-600 p-3 text-sm font-black text-white hover:bg-red-700 transition active:scale-95 shadow-lg shadow-red-900/20"
+                    >
+                        <LogOut className="h-4 w-4" />
+                        KELUAR / LOGOUT
+                    </button>
+                </div>
+            )}
         </div>
     );
 

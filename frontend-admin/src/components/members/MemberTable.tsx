@@ -113,9 +113,9 @@ function ResizeHandle({ onResize }: { onResize: (dx: number) => void }) {
                        cursor-col-resize group z-10 select-none"
             title="Tarik untuk mengubah lebar kolom"
         >
-            <div className="h-5 w-px bg-border-custom group-hover:bg-brand-primary group-hover:w-0.5
+            <div className="h-5 w-px bg-border-custom group-hover:bg-red-500 group-hover:w-0.5
                             transition-all duration-150 rounded-full" />
-            <GripVertical className="absolute h-3 w-3 text-transparent group-hover:text-brand-primary/50
+            <GripVertical className="absolute h-3 w-3 text-transparent group-hover:text-red-500
                                      transition-colors duration-150" />
         </div>
     );
@@ -238,7 +238,7 @@ function MemberCard({
                     <button
                         onClick={() => onEdit(member)}
                         disabled={!canEdit}
-                        className="flex items-center gap-1 rounded-lg bg-brand-primary/10 border border-brand/5 px-2.5 py-1.5 text-xs font-bold text-brand-primary hover:bg-brand-primary hover:text-white disabled:opacity-30 disabled:grayscale transition-all"
+                        className="flex items-center gap-1 rounded-lg bg-slate-900 border border-slate-800 px-2.5 py-1.5 text-xs font-bold text-white hover:bg-slate-700 transition-all"
                     >
                         <Pencil className="h-3.5 w-3.5" />
                         Edit
@@ -324,7 +324,7 @@ export default function MemberTable({
                                 onClick={() => onPageChange(p)}
                                 className={`h-8 w-8 rounded-xl text-xs font-bold transition-all
                                     ${p === page
-                                        ? 'bg-brand-primary text-white shadow-md shadow-brand-primary/20'
+                                        ? 'bg-slate-900 text-white shadow-md shadow-slate-900/20'
                                         : 'text-text-muted hover:bg-surface-hover hover:text-foreground'}`}
                             >
                                 {p}
@@ -495,7 +495,7 @@ export default function MemberTable({
                                                 <button
                                                     onClick={() => onEdit(m)}
                                                     disabled={m.membershipStatus !== 'active'}
-                                                    className="rounded-xl p-2 text-text-muted transition-all hover:bg-brand-primary/10 hover:text-brand-primary disabled:opacity-20"
+                                                    className="rounded-xl p-2 text-text-muted transition-all hover:bg-slate-900 hover:text-white disabled:opacity-20"
                                                     title="Edit"
                                                 >
                                                     <Pencil className="h-4 w-4" />

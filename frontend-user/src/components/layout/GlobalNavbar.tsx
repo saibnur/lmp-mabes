@@ -11,7 +11,8 @@ import NotificationDropdown from './NotificationDropdown';
 
 export default function GlobalNavbar({ onOpenSidebar }: { onOpenSidebar: () => void }) {
     const pathname = usePathname();
-    const { profile, loading } = useUserProfile();
+    const { profile, uid, loading } = useUserProfile();
+    const isLoggedIn = !loading && !!uid;
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -34,13 +35,13 @@ export default function GlobalNavbar({ onOpenSidebar }: { onOpenSidebar: () => v
         window.location.href = '/';
     };
 
-    const isLoggedIn = !loading && !!profile;
+
 
     return (
         <header className="fixed top-0 z-50 w-full border-b border-slate-200 bg-white shadow-sm">
             <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 md:px-8 lg:px-12">
-                {/* Left: Logo — only visible on mobile/tablet; hidden on desktop (lg+) since sidebar shows it */}
-                <Link href="/" className="group flex items-center gap-3 lg:hidden">
+                {/* Left: Logo — visible on all screen sizes */}
+                <Link href="/" className="group flex items-center gap-3">
                     <div className="relative h-10 w-12 shrink-0 overflow-hidden rounded-lg bg-slate-100 p-1 shadow-sm transition-transform group-hover:scale-105">
                         <img
                             src="/logo-lmp.svg"
@@ -56,12 +57,10 @@ export default function GlobalNavbar({ onOpenSidebar }: { onOpenSidebar: () => v
                         <span className="text-red-600">Merah Putih</span>
                     </span>
                 </Link>
-                {/* Desktop placeholder to maintain layout balance */}
-                <div className="hidden lg:block" />
 
                 {/* Right: Actions */}
                 <div className="flex items-center gap-3 md:gap-4">
-                    {(!loading && !isLoggedIn) && (
+                    {!loading && !isLoggedIn && (
                         <div className="flex items-center gap-2">
                             <Link
                                 href="/login"
@@ -81,7 +80,7 @@ export default function GlobalNavbar({ onOpenSidebar }: { onOpenSidebar: () => v
                     {isLoggedIn && (
                         <>
                             {/* Notification Dropdown */}
-                            <NotificationDropdown uid={profile?.uid ?? null} />
+                            <NotificationDropdown uid={uid} />
 
                             {/* User Profile Dropdown */}
                             <div className="relative" ref={dropdownRef}>
@@ -90,7 +89,7 @@ export default function GlobalNavbar({ onOpenSidebar }: { onOpenSidebar: () => v
                                     className="flex items-center gap-2 rounded-full border border-slate-200 p-1 hover:bg-slate-50 transition-colors"
                                 >
                                     <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-slate-200 text-slate-600">
-                                        {profile.photoURL ? (
+                                        {profile?.photoURL ? (
                                             <img
                                                 src={profile.photoURL}
                                                 alt="Profile"
@@ -98,12 +97,12 @@ export default function GlobalNavbar({ onOpenSidebar }: { onOpenSidebar: () => v
                                             />
                                         ) : (
                                             <span className="text-sm font-semibold">
-                                                {(profile.displayName || 'M').charAt(0).toUpperCase()}
+                                                {(profile?.displayName || 'M').charAt(0).toUpperCase()}
                                             </span>
                                         )}
                                     </div>
                                     <span className="hidden md:block max-w-[120px] truncate text-sm font-medium text-slate-700 mr-2">
-                                        {profile.displayName || 'Member'}
+                                        {profile?.displayName || 'Member'}
                                     </span>
                                 </button>
 
@@ -112,10 +111,10 @@ export default function GlobalNavbar({ onOpenSidebar }: { onOpenSidebar: () => v
                                     <div className="absolute right-0 mt-2 w-56 rounded-xl border border-slate-100 bg-white shadow-xl py-2">
                                         <div className="px-4 py-3 border-b border-slate-100 mb-1 flex flex-col">
                                             <span className="text-sm font-semibold text-slate-900 truncate">
-                                                {profile.displayName || 'Member'}
+                                                {profile?.displayName || 'Member'}
                                             </span>
                                             <span className="text-xs text-slate-500 truncate mt-0.5">
-                                                {profile.phoneNumber || profile.phone || 'No phone'}
+                                                {profile?.phoneNumber || profile?.phone || 'No phone'}
                                             </span>
                                         </div>
                                         <Link
