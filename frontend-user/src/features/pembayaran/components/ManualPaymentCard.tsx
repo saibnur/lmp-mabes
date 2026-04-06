@@ -27,6 +27,7 @@ function TransferInstructionStep({
   orderId,
   uniqueCode,
   grossAmount,
+  expiredAt,
   copied,
   onCopy,
   onNext,
@@ -34,11 +35,22 @@ function TransferInstructionStep({
   orderId: string;
   uniqueCode: number;
   grossAmount: number;
+  expiredAt: string | null;
   copied: string | null;
   onCopy: (text: string, key: string) => void;
   onNext: () => void;
 }) {
   const uniqueCodeStr = String(uniqueCode).padStart(3, '0');
+
+  // Format expiredAt ke WIB
+  const deadlineText = expiredAt
+    ? (() => {
+        const d = new Date(expiredAt);
+        const tanggal = d.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+        const jam = d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' });
+        return `${tanggal} pukul ${jam} WIB`;
+      })()
+    : null;
 
   return (
     <motion.div
@@ -74,11 +86,23 @@ function TransferInstructionStep({
           <p className="font-bold text-amber-800 mb-0.5">
             Kode Unik Anda: <span className="text-amber-600 font-extrabold text-base tracking-widest">{uniqueCodeStr}</span>
           </p>
+          {/* GAP #5 FIX: pesan wajib sesuai spec */}
           <p className="text-amber-700 text-xs leading-relaxed">
-            Pastikan nominal transfer sesuai <strong>persis</strong> — termasuk 3 angka terakhir sebagai kode unik Anda (Rp 25.000 + {uniqueCode} = Rp {grossAmount.toLocaleString('id-ID')}).
+            Transfer <strong>TEPAT Rp {grossAmount.toLocaleString('id-ID')}</strong> — jangan dibulatkan ke Rp 25.000.
+            Kode unik 3 digit terakhir digunakan admin untuk identifikasi pembayaran Anda.
           </p>
         </div>
       </div>
+
+      {/* GAP #6 FIX: tampilkan deadline expired_at */}
+      {deadlineText && (
+        <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-2.5">
+          <Clock className="w-4 h-4 text-red-500 shrink-0" />
+          <p className="text-xs text-red-700">
+            Bayar sebelum <strong>{deadlineText}</strong>
+          </p>
+        </div>
+      )}
 
       {/* Rekening Tujuan */}
       <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-3">
@@ -236,6 +260,7 @@ export default function ManualPaymentCard({ isRenewal = false, onSuccess }: Prop
   const [orderId, setOrderId] = useState<string | null>(null);
   const [uniqueCode, setUniqueCode] = useState<number>(0);
   const [grossAmount, setGrossAmount] = useState<number>(BASE_AMOUNT);
+  const [expiredAt, setExpiredAt] = useState<string | null>(null); // GAP #6
   const [buktiFile, setBuktiFile] = useState<File | null>(null);
   const [buktiPreview, setBuktiPreview] = useState<string | null>(null);
   const [isInitializing, setIsInitializing] = useState(false);
@@ -276,6 +301,7 @@ export default function ManualPaymentCard({ isRenewal = false, onSuccess }: Prop
         setOrderId(data.orderId);
         setUniqueCode(data.uniqueCode ?? 0);
         setGrossAmount(data.amount);
+        setExpiredAt(data.expiredAt ?? null); // GAP #6
         setStep('transfer');
       }
     } catch (err: any) {
@@ -392,6 +418,7 @@ export default function ManualPaymentCard({ isRenewal = false, onSuccess }: Prop
               orderId={orderId}
               uniqueCode={uniqueCode}
               grossAmount={grossAmount}
+              expiredAt={expiredAt}
               copied={copied}
               onCopy={copyToClipboard}
               onNext={() => setStep('confirm')}

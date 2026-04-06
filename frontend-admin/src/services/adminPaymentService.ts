@@ -8,11 +8,12 @@ export interface PaymentConfirmation {
     id: string;
     orderId: string;
     uid: string;
-    status: 'pending' | 'submitted' | 'approved' | 'rejected';
+    status: 'pending' | 'submitted' | 'approved' | 'rejected' | 'expired';
     grossAmount: number;
     baseAmount?: number;
     uniqueCode?: number;
     adminNote?: string | null;
+    expiredAt?: string | null;
     customerDetails: {
         name: string;
         phone: string;

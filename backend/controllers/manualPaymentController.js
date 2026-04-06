@@ -11,7 +11,6 @@ cloudinary.config({
 });
 
 // ─── Info rekening bank tujuan transfer ───────────────────────────────────────
-// FIX: array sebelumnya salah tutup (syntax error). Hanya BRI sesuai spec.
 const BANK_ACCOUNTS = [
     {
         bank: 'BRI',
@@ -30,31 +29,68 @@ exports.getPaymentMode = (req, res) => {
     res.json({ success: true, mode: process.env.PAYMENT_MODE || 'midtrans' });
 };
 
-/**
- * Generate kode unik 3 digit (001–999) yang tidak bentrok dengan transaksi pending lain.
- * FIX: Sebelumnya hanya Math.random() tanpa collision check.
- */
+// ─────────────────────────────────────────────────────────────────────────────
+// GAP #3 FIX: Expire order yang sudah lewat 24 jam (status 'pending' saja).
+// Dipanggil setiap kali user generate order baru.
+// ─────────────────────────────────────────────────────────────────────────────
+async function expireStaleOrders(db) {
+    try {
+        const now = admin.firestore.Timestamp.now();
+        const stale = await db.collection('payment_confirmations')
+            .where('status', '==', 'pending')
+            .where('expiredAt', '<', now)
+            .get();
+        if (stale.empty) return;
+        const batch = db.batch();
+        stale.docs.forEach(doc => {
+            batch.update(doc.ref, {
+                status: 'expired',
+                updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            });
+        });
+        await batch.commit();
+        console.log(`[Manual Payment] Expired ${stale.size} stale order(s).`);
+    } catch (err) {
+        // Jangan gagalkan request utama hanya karena expire check error
+        console.warn('[Manual Payment] expireStaleOrders warning:', err.message);
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GAP #1 FIX: Scope cek konflik per hari (bukan global).
+// GAP #2 FIX: Max 10 percobaan, pesan error sesuai spec.
+// GAP #3 FIX: Status 'expired' tidak dianggap konflik (hanya pending & submitted hari ini).
+// ─────────────────────────────────────────────────────────────────────────────
 async function generateUniqueCode(db) {
-    const MAX_ATTEMPTS = 20;
+    // Hitung batas awal hari ini (WIB = UTC+7 → offset 7 jam)
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayStartTs = admin.firestore.Timestamp.fromDate(todayStart);
+
+    // GAP #2: max 10x sesuai spec
+    const MAX_ATTEMPTS = 10;
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
         const code = Math.floor(Math.random() * 999) + 1; // 1–999
-        // Cek apakah sudah ada pending dengan kode unik ini
+
+        // GAP #1: scope per hari + hanya cek status aktif (bukan expired/approved/rejected)
         const existing = await db.collection('payment_confirmations')
             .where('uniqueCode', '==', code)
             .where('status', 'in', ['pending', 'submitted'])
+            .where('createdAt', '>=', todayStartTs)
             .limit(1)
             .get();
+
         if (existing.empty) {
             return code;
         }
     }
-    // Fallback: jika 20x masih bentrok (sangat jarang), lempar error
-    throw new Error('Tidak dapat generate kode unik. Coba lagi nanti.');
+    // GAP #2: pesan error sesuai spec
+    throw new Error('Slot penuh, coba beberapa saat lagi');
 }
 
 /**
  * POST /api/payment/manual/create-order
- * Buat manual order dan kembalikan info rekening bank.
+ * Buat manual order dan kembalikan info rekening bank + kode unik.
  * Private — butuh verifyToken.
  */
 exports.createManualOrder = async (req, res) => {
@@ -62,16 +98,21 @@ exports.createManualOrder = async (req, res) => {
         const { uid } = req;
         const db = getFirestore();
 
-        // Cek apakah sudah ada pending order yang belum dikonfirmasi
+        // GAP #3: Expire order lama sebelum generate kode baru
+        await expireStaleOrders(db);
+
+        // GAP #4: Cek pending & submitted — jangan buat duplikat jika sudah ada salah satunya
         const existing = await db.collection('payment_confirmations')
             .where('uid', '==', uid)
-            .where('status', '==', 'pending')
+            .where('status', 'in', ['pending', 'submitted'])
+            .orderBy('createdAt', 'desc')
             .limit(1)
             .get();
 
         let orderId;
         let uniqueCode;
         let grossAmount;
+        let expiredAt;
 
         if (!existing.empty) {
             // Gunakan order yang sudah ada — kembalikan data dari DB
@@ -79,6 +120,8 @@ exports.createManualOrder = async (req, res) => {
             orderId = existing.docs[0].id;
             uniqueCode = existingData.uniqueCode;
             grossAmount = existingData.grossAmount;
+            // GAP #3: kembalikan expiredAt jika ada
+            expiredAt = existingData.expiredAt?.toDate?.()?.toISOString() || null;
         } else {
             // Buat order baru
             const date = new Date();
@@ -90,9 +133,14 @@ exports.createManualOrder = async (req, res) => {
             const userDoc = await db.collection('users').doc(uid).get();
             const userData = userDoc.exists ? userDoc.data() : {};
 
-            // FIX: Generate kode unik dengan collision check
+            // Generate kode unik (scope per hari, max 10x)
             uniqueCode = await generateUniqueCode(db);
             grossAmount = MEMBERSHIP_AMOUNT + uniqueCode;
+
+            // GAP #3: expiredAt = sekarang + 24 jam
+            const expiredAtDate = new Date(Date.now() + 24 * 60 * 60 * 1000);
+            const expiredAtTs = admin.firestore.Timestamp.fromDate(expiredAtDate);
+            expiredAt = expiredAtDate.toISOString();
 
             await db.collection('payment_confirmations').doc(orderId).set({
                 uid,
@@ -101,6 +149,7 @@ exports.createManualOrder = async (req, res) => {
                 uniqueCode,
                 baseAmount: MEMBERSHIP_AMOUNT,
                 status: 'pending',
+                expiredAt: expiredAtTs,           // GAP #3: simpan expiredAt
                 customerDetails: {
                     name: userData.displayName || userData.fullName || '',
                     phone: userData.phone || userData.phoneNumber || '',
@@ -118,13 +167,13 @@ exports.createManualOrder = async (req, res) => {
             });
         }
 
-        // FIX: Kembalikan uniqueCode & grossAmount dari DB, bukan generate ulang
         res.status(200).json({
             success: true,
             orderId,
             uniqueCode,
             amount: grossAmount,
             baseAmount: MEMBERSHIP_AMOUNT,
+            expiredAt,          // GAP #3 & #6: kirim ke frontend agar ditampilkan
             bankAccounts: BANK_ACCOUNTS,
         });
     } catch (error) {
@@ -159,11 +208,20 @@ exports.submitConfirmation = async (req, res) => {
         if (!orderDoc.exists) {
             return res.status(404).json({ success: false, message: 'Order tidak ditemukan.' });
         }
-        if (orderDoc.data().uid !== uid) {
+        const orderData = orderDoc.data();
+        if (orderData.uid !== uid) {
             return res.status(403).json({ success: false, message: 'Akses ditolak.' });
         }
-        if (orderDoc.data().status !== 'pending') {
-            return res.status(409).json({ success: false, message: 'Order sudah dikonfirmasi sebelumnya.' });
+        if (orderData.status !== 'pending') {
+            return res.status(409).json({ success: false, message: 'Order sudah dikonfirmasi atau tidak aktif.' });
+        }
+        // Cek apakah sudah expired
+        if (orderData.expiredAt && orderData.expiredAt.toDate() < new Date()) {
+            await db.collection('payment_confirmations').doc(orderId).update({
+                status: 'expired',
+                updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            });
+            return res.status(410).json({ success: false, message: 'Order sudah kadaluarsa. Silakan buat order baru.' });
         }
 
         await db.collection('payment_confirmations').doc(orderId).update({
@@ -208,7 +266,7 @@ exports.uploadBukti = async (req, res) => {
                     folder: 'payment-proofs',
                     resource_type: 'image',
                     allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
-                    max_bytes: 5 * 1024 * 1024, // 5 MB
+                    max_bytes: 5 * 1024 * 1024,
                 },
                 (error, result) => {
                     if (error) {
@@ -253,7 +311,7 @@ exports.uploadBukti = async (req, res) => {
 /**
  * GET /api/payment/manual/pending
  * Admin: daftar semua konfirmasi manual (semua status).
- * Query param: status (pending | submitted | approved | rejected)
+ * Query param: status, search
  * Private — butuh verifyToken (admin).
  */
 exports.getPendingConfirmations = async (req, res) => {
@@ -278,6 +336,7 @@ exports.getPendingConfirmations = async (req, res) => {
             ...doc.data(),
             createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || null,
             updatedAt: doc.data().updatedAt?.toDate?.()?.toISOString() || null,
+            expiredAt: doc.data().expiredAt?.toDate?.()?.toISOString() || null,
             confirmation: doc.data().confirmation
                 ? {
                     ...doc.data().confirmation,
@@ -286,7 +345,6 @@ exports.getPendingConfirmations = async (req, res) => {
                 : null,
         }));
 
-        // Filter search (nama / email) — dilakukan di backend untuk simplisitas
         if (search && search.trim()) {
             const q = search.trim().toLowerCase();
             confirmations = confirmations.filter(c => {
@@ -296,7 +354,6 @@ exports.getPendingConfirmations = async (req, res) => {
             });
         }
 
-        // Hitung pending count untuk badge
         const pendingCount = await db.collection('payment_confirmations')
             .where('status', '==', 'submitted')
             .get()
@@ -346,6 +403,13 @@ exports.approveOrRejectPayment = async (req, res) => {
             });
         }
 
+        if (action === 'reject' && (!reason || !reason.trim())) {
+            return res.status(400).json({
+                success: false,
+                message: 'Alasan penolakan wajib diisi.',
+            });
+        }
+
         const orderDoc = await db.collection('payment_confirmations').doc(orderId).get();
         if (!orderDoc.exists) {
             return res.status(404).json({ success: false, message: 'Order tidak ditemukan.' });
@@ -355,7 +419,6 @@ exports.approveOrRejectPayment = async (req, res) => {
         const uid = orderData.uid;
 
         if (action === 'approve') {
-            // 1. Update payment_confirmations
             await db.collection('payment_confirmations').doc(orderId).update({
                 status: 'approved',
                 adminNote: reason || '',
@@ -363,7 +426,6 @@ exports.approveOrRejectPayment = async (req, res) => {
                 updatedAt: admin.firestore.FieldValue.serverTimestamp(),
             });
 
-            // 2. Aktifkan membership user (sama seperti logika Midtrans webhook)
             const expiryDate = new Date();
             expiryDate.setFullYear(expiryDate.getFullYear() + 2);
             const expiryTimestamp = admin.firestore.Timestamp.fromDate(expiryDate);
@@ -379,7 +441,6 @@ exports.approveOrRejectPayment = async (req, res) => {
                 updatedAt: admin.firestore.FieldValue.serverTimestamp(),
             });
 
-            // 3. Buat/update dokumen di koleksi transactions untuk konsistensi
             await db.collection('transactions').doc(orderId).set({
                 uid,
                 orderId,
@@ -405,18 +466,17 @@ exports.approveOrRejectPayment = async (req, res) => {
         if (action === 'reject') {
             await db.collection('payment_confirmations').doc(orderId).update({
                 status: 'rejected',
-                adminNote: reason || 'Ditolak oleh admin.',
+                adminNote: reason.trim(),
                 rejectedAt: admin.firestore.FieldValue.serverTimestamp(),
                 updatedAt: admin.firestore.FieldValue.serverTimestamp(),
             });
 
-            // Kembalikan status user ke pending supaya bisa kirim ulang
             await db.collection('users').doc(uid).update({
                 membershipStatus: 'pending',
                 updatedAt: admin.firestore.FieldValue.serverTimestamp(),
             });
 
-            console.log(`[Manual Payment] Order ${orderId} REJECTED.`);
+            console.log(`[Manual Payment] Order ${orderId} REJECTED. Reason: ${reason}`);
 
             return res.status(200).json({
                 success: true,
@@ -462,6 +522,7 @@ exports.getMyConfirmationStatus = async (req, res) => {
                 uniqueCode: data.uniqueCode || null,
                 baseAmount: data.baseAmount || MEMBERSHIP_AMOUNT,
                 adminNote: data.adminNote || null,
+                expiredAt: data.expiredAt?.toDate?.()?.toISOString() || null,
                 bankAccounts: BANK_ACCOUNTS,
                 confirmation: data.confirmation
                     ? {

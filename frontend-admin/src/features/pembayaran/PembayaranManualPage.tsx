@@ -21,13 +21,14 @@ const STATUS_FILTER_OPTIONS = [
 ];
 
 function StatusBadge({ status }: { status: PaymentConfirmation['status'] }) {
-    const map = {
-        pending: { label: 'Menunggu Konfirmasi', cls: 'bg-slate-100 text-slate-600' },
-        submitted: { label: 'Menunggu Verifikasi', cls: 'bg-amber-100 text-amber-700' },
-        approved: { label: 'Disetujui', cls: 'bg-green-100 text-green-700' },
-        rejected: { label: 'Ditolak', cls: 'bg-red-100 text-red-700' },
+    const map: Record<string, { label: string; cls: string }> = {
+        pending:  { label: 'Menunggu Konfirmasi', cls: 'bg-slate-100 text-slate-600' },
+        submitted:{ label: 'Menunggu Verifikasi', cls: 'bg-amber-100 text-amber-700' },
+        approved: { label: 'Disetujui',           cls: 'bg-green-100 text-green-700' },
+        rejected: { label: 'Ditolak',             cls: 'bg-red-100 text-red-700'   },
+        expired:  { label: 'Kedaluwarsa',         cls: 'bg-gray-100 text-gray-500' },
     };
-    const { label, cls } = map[status] || map.pending;
+    const { label, cls } = map[status] ?? map['pending'];
     return (
         <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${cls}`}>
             {label}
