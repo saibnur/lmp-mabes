@@ -5,7 +5,7 @@ const { getFirestore, getAuth } = require('../config/firebase');
 const axios = require('axios');
 const bcrypt = require('bcryptjs');
 
-const FONNTE_TOKEN = process.env.FONNTE_TOKEN;
+// NOTE: FONNTE_TOKEN dibaca di dalam handler agar Vercel env vars selalu fresh
 const OTP_EXPIRY_MINUTES = 5;
 
 router.get('/', (req, res) => {
@@ -207,6 +207,7 @@ router.post('/send-otp', async (req, res) => {
         message: 'Format nomor tidak valid. Gunakan nomor Indonesia (contoh: 08123456789 atau 628123456789)',
       });
     }
+
     const otp = generateOTP();
     const expiresAt = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
 
@@ -217,17 +218,22 @@ router.post('/send-otp', async (req, res) => {
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
-    if (!FONNTE_TOKEN) {
-      console.warn('[Auth] FONNTE_TOKEN tidak di-set, OTP tidak dikirim');
+    // Baca token di dalam handler agar selalu fresh di Vercel serverless
+    const fonnteToken = process.env.FONNTE_TOKEN;
+    if (!fonnteToken) {
+      console.warn('[Auth] FONNTE_TOKEN tidak di-set, OTP tidak dikirim ke WA');
       return res.json({
         success: true,
         message: 'OTP berhasil dibuat (mode dev, tidak dikirim WA)',
-        devOtp: process.env.NODE_ENV === 'development' ? otp : undefined,
+        devOtp: process.env.NODE_ENV !== 'production' ? otp : undefined,
       });
     }
 
-    const target = normalizedPhone.startsWith('62') ? normalizedPhone.slice(2) : normalizedPhone;
+    // Fonnte paling stabil dengan nomor penuh 62xxxxxxxxx di target
+    const target = normalizedPhone.startsWith('62') ? normalizedPhone : `62${normalizedPhone}`;
     const message = `Kode OTP LMP Superapp Anda: *${otp}*\n\nKode berlaku ${OTP_EXPIRY_MINUTES} menit. Jangan bagikan kode ini ke siapapun.`;
+
+    console.log(`[Auth] Mengirim OTP ke target: ${target}`);
 
     const response = await axios.post(
       'https://api.fonnte.com/send',
@@ -238,18 +244,23 @@ router.post('/send-otp', async (req, res) => {
       }).toString(),
       {
         headers: {
-          Authorization: FONNTE_TOKEN,
+          Authorization: fonnteToken,
           'Content-Type': 'application/x-www-form-urlencoded',
         },
+        timeout: 8000, // 8 detik — cegah Vercel function timeout
       }
     );
 
     const data = response.data;
+    console.log('[Auth] Fonnte response:', JSON.stringify(data));
+
+    // Fonnte menggunakan field 'reason' (bukan 'message') saat error
     if (data.status === false) {
-      console.error('[Auth] Fonnte error:', data);
+      const errMsg = data.reason || data.message || 'Gagal mengirim OTP ke WhatsApp';
+      console.error('[Auth] Fonnte menolak pengiriman:', errMsg);
       return res.status(500).json({
         success: false,
-        message: data.message || 'Gagal mengirim OTP ke WhatsApp',
+        message: `Gagal mengirim OTP: ${errMsg}`,
       });
     }
 
@@ -258,8 +269,10 @@ router.post('/send-otp', async (req, res) => {
       message: 'OTP telah dikirim ke WhatsApp Anda',
     });
   } catch (err) {
-    console.error('[Auth] send-otp error:', err);
-    const message = err.response?.data?.message || err.message || 'Terjadi kesalahan server';
+    console.error('[Auth] send-otp error:', err.message);
+    // Axios error: Fonnte mengembalikan HTTP error (4xx/5xx)
+    const fonnteMsg = err.response?.data?.reason || err.response?.data?.message;
+    const message = fonnteMsg || err.message || 'Terjadi kesalahan server saat mengirim OTP';
     res.status(500).json({ success: false, message });
   }
 });
@@ -400,6 +413,76 @@ router.post('/verify-otp', async (req, res) => {
     console.error('[Auth] verify-otp error:', err);
     const message = err.response?.data?.message || err.message || 'Terjadi kesalahan server';
     res.status(500).json({ success: false, message });
+  }
+});
+
+/**
+ * POST /api/auth/link-phone
+ * Body: { phone: string, otp: string }
+ * Header: Authorization: Bearer <Firebase ID Token>
+ * Menghubungkan nomor WA ke akun yang sudah login (misal via Google),
+ * asalkan nomor tersebut belum dipakai oleh akun lain.
+ */
+router.post('/link-phone', verifyIdToken, async (req, res) => {
+  try {
+    const { phone, otp } = req.body;
+    const { uid } = req;
+
+    if (!phone || !otp) {
+      return res.status(400).json({ success: false, message: 'Nomor telepon dan OTP wajib diisi' });
+    }
+
+    const normalizedPhone = normalizePhone(phone);
+    if (!isValidIndonesianPhone(normalizedPhone)) {
+      return res.status(400).json({ success: false, message: 'Format nomor tidak valid' });
+    }
+
+    const db = getFirestore();
+    const auth = getAuth();
+
+    // Verifikasi OTP
+    const otpDoc = await db.collection('otps').doc(normalizedPhone).get();
+    if (!otpDoc.exists) {
+      return res.status(400).json({ success: false, message: 'Kode OTP tidak ditemukan atau sudah kedaluwarsa' });
+    }
+    const { code, expiresAt } = otpDoc.data();
+    if (expiresAt.toDate() < new Date()) {
+      await db.collection('otps').doc(normalizedPhone).delete();
+      return res.status(400).json({ success: false, message: 'Kode OTP telah kedaluwarsa' });
+    }
+    if (String(otp).trim() !== String(code)) {
+      return res.status(400).json({ success: false, message: 'Kode OTP tidak valid' });
+    }
+
+    // Cek apakah nomor sudah dipakai user lain
+    try {
+      const existingUser = await auth.getUserByPhoneNumber(`+${normalizedPhone}`);
+      if (existingUser && existingUser.uid !== uid) {
+        return res.status(400).json({ success: false, message: 'Nomor ini sudah terdaftar di akun lain. Silakan gunakan nomor berbeda.' });
+      }
+    } catch {
+      // Error berarti nomor belum dipakai (ideal)
+    }
+
+    // Hapus OTP
+    await db.collection('otps').doc(normalizedPhone).delete();
+
+    // Update Firebase Auth user
+    await auth.updateUser(uid, {
+      phoneNumber: `+${normalizedPhone}`
+    });
+
+    // Update Firestore User Document
+    await db.collection('users').doc(uid).set({
+      phone: normalizedPhone,
+      phoneNumber: normalizedPhone,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+
+    res.json({ success: true, message: 'Nomor WhatsApp berhasil ditautkan' });
+  } catch (err) {
+    console.error('[Auth] link-phone error:', err);
+    res.status(500).json({ success: false, message: err.message || 'Gagal menautkan nomor' });
   }
 });
 
